@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sampleTradingDay } from "../data/sampleTradingDay";
-import { generatePreMarketPlan } from "./strategyEngine";
+import { generateAuctionPlan, generatePreMarketPlan } from "./strategyEngine";
 
 describe("generatePreMarketPlan", () => {
   it("returns 3 to 5 preparation candidates when market is tradable", () => {
@@ -21,5 +21,18 @@ describe("generatePreMarketPlan", () => {
 
     expect(result.marketStatus).toBe("NO_TRADE");
     expect(result.candidates).toHaveLength(0);
+  });
+});
+
+describe("generateAuctionPlan", () => {
+  it("ranks the only fully confirmed stock first and fills backups from premarket candidates", () => {
+    const premarket = generatePreMarketPlan(sampleTradingDay);
+    const result = generateAuctionPlan(sampleTradingDay, premarket);
+
+    expect(result.stage).toBe("AUCTION_0925");
+    expect(result.candidates[0].role).toBe("PRIMARY");
+    expect(result.candidates[0].stock.code).toBe("300750");
+    expect(result.candidates.length).toBeGreaterThanOrEqual(3);
+    expect(result.candidates[1].role).toBe("BACKUP");
   });
 });
