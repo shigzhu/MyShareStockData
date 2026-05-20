@@ -99,7 +99,7 @@ export function generateAuctionPlan(
     };
   }
 
-  const checked = preMarketResult.candidates.map((candidate) => {
+  const checked: CandidatePlan[] = preMarketResult.candidates.map((candidate) => {
     const auction = input.auctionByCode?.[candidate.stock.code];
     const check = confirmAuction(candidate, auction, thresholds);
     return {
