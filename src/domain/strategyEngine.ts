@@ -1,4 +1,5 @@
 import { confirmAuction } from "./auctionConfirmation";
+import { scoreDiscussionHeat } from "./discussionHeat";
 import { evaluateMarketGate } from "./marketGate";
 import { getRiskRejections } from "./riskFilters";
 import { defaultThresholds } from "./thresholds";
@@ -20,18 +21,27 @@ function scoreStock(stock: StockMetrics, themeScore: number): number {
   return Math.round(liquidityScore + attention + position + theme);
 }
 
-function buildCandidatePlan(stock: StockMetrics, theme: ThemeMetrics, score: number): CandidatePlan {
+function buildCandidatePlan(
+  stock: StockMetrics,
+  theme: ThemeMetrics,
+  tradingScore: number,
+  heat = scoreDiscussionHeat(stock)
+): CandidatePlan {
+  const score = Math.round(tradingScore * 0.7 + heat.weightedScore);
   return {
     stock,
     theme,
     role: "BACKUP",
     score,
+    tradingScore,
+    heat,
     reasons: [
       `属于${theme.name}主线`,
       "成交额和换手率处于题材核心位置",
-      "短期位置未触发过热过滤"
+      "短期位置未触发过热过滤",
+      ...heat.reasons
     ],
-    risks: ["9:25前仍需竞价成交确认", "题材龙头走弱则取消买入"],
+    risks: ["9:25前仍需竞价成交确认", "题材龙头走弱则取消买入", ...heat.risks],
     entryPlan: "9:25后只在竞价明显放量且高开3%-7%附近时分批参与",
     noBuyCondition: "竞价无量、高开过热、板块龙头跳水或个股放量滞涨时不买",
     stopLoss: "单只股票硬止损约-8%，逻辑走弱时提前退出",
@@ -69,11 +79,21 @@ export function generatePreMarketPlan(
         continue;
       }
 
-      candidates.push(buildCandidatePlan(stock, selected.theme, scoreStock(stock, selected.score)));
+      const heat = scoreDiscussionHeat(stock);
+      if (heat.reject) {
+        rejections.push({ code: stock.code, themeId: stock.themeId, reason: "高位舆情过热，剔除候选" });
+        continue;
+      }
+
+      candidates.push(buildCandidatePlan(stock, selected.theme, scoreStock(stock, selected.score), heat));
     }
   }
 
   const ranked = candidates.sort((a, b) => b.score - a.score).slice(0, 5);
+
+  if (ranked[0]) {
+    ranked[0] = { ...ranked[0], role: "PRIMARY" };
+  }
 
   return {
     stage: "PREMARKET_0830",

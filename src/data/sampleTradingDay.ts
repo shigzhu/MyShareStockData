@@ -22,6 +22,14 @@ function stock(overrides: Partial<StockMetrics>): StockMetrics {
     severeFinancialRisk: false,
     majorNegativeEvent: false,
     attentionScore: 88,
+    discussionHeat: {
+      iwencaiScore: 58,
+      eastMoneyGubaScore: 62,
+      weiboFinanceScore: 55,
+      rankingDays: 2,
+      suddenRiseDays: 2,
+      screenDominating: false
+    },
     ...overrides
   };
 }
@@ -48,8 +56,34 @@ export const sampleTradingDay: TradingDayInput = {
       continuationScore: 79,
       stocks: [
         stock({ code: "300750", name: "云算科技", attentionScore: 95, turnoverAmount: 2_600_000_000 }),
-        stock({ code: "002230", name: "智联股份", attentionScore: 90, turnoverAmount: 2_100_000_000 }),
-        stock({ code: "688256", name: "芯源智能", attentionScore: 84, turnoverAmount: 1_500_000_000 })
+        stock({
+          code: "002230",
+          name: "智联股份",
+          attentionScore: 90,
+          turnoverAmount: 2_100_000_000,
+          discussionHeat: {
+            iwencaiScore: 76,
+            eastMoneyGubaScore: 73,
+            weiboFinanceScore: 70,
+            rankingDays: 3,
+            suddenRiseDays: 2,
+            screenDominating: false
+          }
+        }),
+        stock({
+          code: "688256",
+          name: "芯源智能",
+          attentionScore: 84,
+          turnoverAmount: 1_500_000_000,
+          discussionHeat: {
+            iwencaiScore: 28,
+            eastMoneyGubaScore: 31,
+            weiboFinanceScore: 24,
+            rankingDays: 0,
+            suddenRiseDays: 0,
+            screenDominating: false
+          }
+        })
       ]
     },
     {
@@ -65,14 +99,30 @@ export const sampleTradingDay: TradingDayInput = {
           name: "机电核心",
           themeId: "robot",
           attentionScore: 91,
-          turnoverAmount: 2_300_000_000
+          turnoverAmount: 2_300_000_000,
+          discussionHeat: {
+            iwencaiScore: 90,
+            eastMoneyGubaScore: 91,
+            weiboFinanceScore: 88,
+            rankingDays: 2,
+            suddenRiseDays: 1,
+            screenDominating: false
+          }
         }),
         stock({
           code: "002527",
           name: "精密传动",
           themeId: "robot",
           attentionScore: 87,
-          turnoverAmount: 1_900_000_000
+          turnoverAmount: 1_900_000_000,
+          discussionHeat: {
+            iwencaiScore: 45,
+            eastMoneyGubaScore: 42,
+            weiboFinanceScore: 39,
+            rankingDays: 1,
+            suddenRiseDays: 1,
+            screenDominating: false
+          }
         })
       ]
     }

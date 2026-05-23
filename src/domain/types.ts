@@ -2,6 +2,8 @@ export type TradeStage = "PREMARKET_0830" | "AUCTION_0925";
 export type MarketGateStatus = "TRADABLE" | "NO_TRADE";
 export type CandidateRole = "PRIMARY" | "CONFIRMED" | "BACKUP" | "REJECTED";
 export type DataCompleteness = "FULL" | "PARTIAL" | "MANUAL_AUCTION" | "MISSING";
+export type HeatTemperature = "冷门" | "升温" | "热门" | "过热" | "异常刷屏";
+export type DeleteReason = "过热" | "不喜欢" | "已买过" | "风险大" | "题材不认可" | "其他";
 
 export interface MarketMood {
   advancingCount: number;
@@ -34,6 +36,25 @@ export interface StockMetrics {
   severeFinancialRisk: boolean;
   majorNegativeEvent: boolean;
   attentionScore: number;
+  discussionHeat: DiscussionHeatMetrics;
+}
+
+export interface DiscussionHeatMetrics {
+  iwencaiScore: number;
+  eastMoneyGubaScore: number;
+  weiboFinanceScore: number;
+  rankingDays: number;
+  suddenRiseDays: number;
+  screenDominating: boolean;
+}
+
+export interface DiscussionHeatScore {
+  rawScore: number;
+  weightedScore: number;
+  temperature: HeatTemperature;
+  reasons: string[];
+  risks: string[];
+  reject: boolean;
 }
 
 export interface ThemeMetrics {
@@ -110,12 +131,24 @@ export interface CandidatePlan {
   theme: ThemeMetrics;
   role: CandidateRole;
   score: number;
+  tradingScore: number;
+  heat: DiscussionHeatScore;
   reasons: string[];
   risks: string[];
   entryPlan: string;
   noBuyCondition: string;
   stopLoss: string;
   trendExit: string;
+}
+
+export interface RecommendationDeletion {
+  code: string;
+  name: string;
+  tradeDate: string;
+  stage: TradeStage;
+  role: CandidateRole;
+  reason: DeleteReason;
+  deletedAt: string;
 }
 
 export interface StrategyResult {
