@@ -75,6 +75,30 @@ Theme strength is scored from:
 
 If the clearest theme leader is already overheated, the app rejects the whole theme instead of buying weaker followers.
 
+## Cross-Platform Discussion Heat
+
+The system must include daily market discussion heat as 30% of the stock score. This corrects the first prototype's weakness of relying too heavily on internal sample price and turnover data.
+
+Discussion heat sources for the first scoring model are:
+
+- Tonghuashun / iWencai-style stock attention: 10%.
+- East Money Guba discussion and popularity: 10%.
+- Weibo finance and stock-super-topic discussion: 10%.
+
+Discussion heat is bidirectional:
+
+- Moderate heat means a stock is being noticed by the market and receives a positive score.
+- Cold stocks are downgraded because the app is designed for short-swing attention leaders, not long-term hidden positions.
+- Extreme heat is not automatically positive. Low-position, newly launched stocks with extreme heat may remain eligible with a risk label. High-position stocks with extreme heat are rejected or downgraded to observation.
+
+Low-position newly launched status requires all three conditions:
+
+- Price position: recent 10-day return is not excessive and price is not far above the 5-day and 10-day moving averages.
+- Heat position: the stock entered discussion rankings during the last 1-3 days and was not already a long-running screen-dominating name.
+- Volume-price position: turnover has started to expand, but the stock has not shown consecutive high-level limit-ups, blow-off volume, or weak acceptance.
+
+The output must show an emotion-temperature label such as `冷门`, `升温`, `热门`, `过热`, or `异常刷屏`.
+
 ## Theme Leader Definition
 
 Within a theme, the leader is primarily the stock with the highest market attention:
@@ -176,13 +200,16 @@ The APK should run on a phone and show the daily plan clearly.
 
 Primary screens:
 
-- Home: today's status, current stage, and whether trading is allowed.
-- 08:30 Plan: 3-5 pre-market candidates with reasons, risks, and planned trigger conditions.
-- 09:25 Confirmation: top recommendation, confirmed candidates, and backups.
+- Home: today's status, current stage, whether trading is allowed, and the daily top recommendations placed first.
+- History: recommendations grouped as month > week > day collapsible sections.
+- 08:30 Plan: a top recommendation plus 3-5 pre-market candidates with reasons, risks, planned trigger conditions, and discussion-heat labels.
+- 09:25 Confirmation: a top recommendation plus confirmed candidates and backups.
 - Stock Detail: theme, leader status, scores, auction confirmation, entry plan, stop rules, and invalidation conditions.
 - Settings: data-source configuration, thresholds, and refresh behavior.
 
 The interface should be dense, readable, and trading-focused. It should not look like a marketing landing page.
+
+Each recommendation row must support deletion with a required reason. Deletion means the recommendation is hidden from the current list and a feedback record is kept for later model tuning. Reasons include `过热`, `不喜欢`, `已买过`, `风险大`, `题材不认可`, and `其他`. Repeated deletion patterns can later lower a stock, theme, platform heat source, or risk tolerance.
 
 ## Non-Goals For The First Version
 
@@ -197,6 +224,10 @@ The interface should be dense, readable, and trading-focused. It should not look
 
 - The APK can generate an 08:30 preparation list of up to 3-5 candidates from available previous-day data.
 - The APK can run a 09:25 confirmation pass over only the 08:30 candidates.
+- The APK shows a clear top recommendation for both 08:30 and 09:25.
+- The APK groups recommendation history by month, week, and day with collapsible sections.
+- The APK allows each recommendation to be deleted with a recorded reason.
+- The APK includes a 30% discussion-heat score and labels extreme heat as an explicit risk.
 - Each output stock includes a trade plan with reasons, risks, entry trigger, no-buy condition, stop-loss rule, and trend exit logic.
 - If the market gate fails, the app clearly returns no trade signal.
 - If required data is missing, the app shows the missing-data state instead of silently fabricating confidence.
