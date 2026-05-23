@@ -94,8 +94,76 @@ h1 {
   overflow-wrap: anywhere;
 }
 
-.plan-section {
+.daily-primary,
+.plan-section,
+.history {
   margin-top: 20px;
+}
+
+.daily-primary h2,
+.history h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.primary-strip {
+  margin-top: 12px;
+}
+
+.primary-title {
+  align-items: center;
+  color: #0f6f5c;
+  display: flex;
+  font-size: 14px;
+  font-weight: 800;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.deletion-log {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  color: #9a4d18;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 14px;
+  padding: 10px 12px;
+}
+
+.history details {
+  background: #ffffff;
+  border: 1px solid #dbe1ea;
+  border-radius: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+}
+
+.history details details {
+  background: #f8fafc;
+}
+
+.history summary {
+  align-items: center;
+  color: #172033;
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  font-weight: 800;
+  gap: 6px;
+  list-style: none;
+}
+
+.history summary::-webkit-details-marker {
+  display: none;
+}
+
+.history-day {
+  color: #4d5a70;
+  display: grid;
+  font-size: 13px;
+  gap: 6px;
+  padding: 10px 2px 2px 22px;
 }
 
 .section-title {
@@ -143,6 +211,13 @@ h1 {
   gap: 12px;
 }
 
+.candidate-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
 .candidate-head strong {
   display: block;
   font-size: 18px;
@@ -166,6 +241,40 @@ h1 {
   padding: 6px 8px;
 }
 
+.icon-button {
+  align-items: center;
+  background: #fff4f2;
+  border: 1px solid #f3c2ba;
+  border-radius: 8px;
+  color: #b42318;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.delete-reasons {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 12px;
+  padding: 10px;
+}
+
+.delete-reasons button {
+  background: #ffffff;
+  border: 1px solid #f6c58f;
+  border-radius: 8px;
+  color: #9a4d18;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 32px;
+}
+
 .score-row {
   align-items: center;
   background: #f6f8fb;
@@ -177,6 +286,19 @@ h1 {
   justify-content: space-between;
   margin: 12px 0;
   padding: 9px 10px;
+}
+
+.heat-row {
+  align-items: center;
+  border: 1px solid #d5e9e3;
+  border-radius: 8px;
+  color: #0f6f5c;
+  display: flex;
+  font-size: 13px;
+  font-weight: 800;
+  justify-content: space-between;
+  margin: -4px 0 12px;
+  padding: 8px 10px;
 }
 
 .candidate-card section + section {
@@ -238,5 +360,9 @@ h1 {
 
   .market-panel {
     grid-template-columns: 1fr;
+  }
+
+  .delete-reasons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

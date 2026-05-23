@@ -25,6 +25,14 @@ function stock(overrides: Partial<StockMetrics>): StockMetrics {
     severeFinancialRisk: false,
     majorNegativeEvent: false,
     attentionScore: 92,
+    discussionHeat: {
+      iwencaiScore: 55,
+      eastMoneyGubaScore: 58,
+      weiboFinanceScore: 52,
+      rankingDays: 2,
+      suddenRiseDays: 2,
+      screenDominating: false
+    },
     ...overrides
   };
 }
