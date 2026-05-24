@@ -29,10 +29,28 @@ def load_fixture(path: Path, trade_date: str) -> dict:
     return payload
 
 
-def build_feed(trade_date: str, trading_day_input: dict, stage: str) -> dict:
+def load_existing_feed(output_dir: Path, trade_date: str) -> dict:
+    today_path = output_dir / "today.json"
+
+    if not today_path.exists():
+        return {}
+
+    try:
+        existing = json.loads(today_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+    if existing.get("tradeDate") != trade_date:
+        return {}
+
+    return existing
+
+
+def build_feed(trade_date: str, trading_day_input: dict, stage: str, existing_feed: dict | None = None) -> dict:
     pre_market_input = deepcopy(trading_day_input)
     auction_input = deepcopy(trading_day_input)
     auction_input["dataCompleteness"] = "MANUAL_AUCTION"
+    existing_feed = existing_feed or {}
 
     feed = {
         "schemaVersion": 1,
@@ -47,6 +65,8 @@ def build_feed(trade_date: str, trading_day_input: dict, stage: str) -> dict:
 
     if stage == "auction":
         feed["auctionInput"] = auction_input
+    elif "auctionInput" in existing_feed:
+        feed["auctionInput"] = existing_feed["auctionInput"]
 
     return feed
 
@@ -63,9 +83,11 @@ def write_feed(feed: dict, output_dir: Path) -> None:
 
 def main() -> None:
     args = parse_args()
+    output_dir = Path(args.output_dir)
     trading_day_input = load_fixture(Path(args.fixture), args.trade_date)
-    feed = build_feed(args.trade_date, trading_day_input, args.stage)
-    write_feed(feed, Path(args.output_dir))
+    existing_feed = load_existing_feed(output_dir, args.trade_date)
+    feed = build_feed(args.trade_date, trading_day_input, args.stage, existing_feed)
+    write_feed(feed, output_dir)
 
 
 if __name__ == "__main__":

@@ -68,6 +68,46 @@ class GenerateDailyFeedTest(unittest.TestCase):
         self.assertIn("preMarketInput", today)
         self.assertNotIn("auctionInput", today)
 
+    def test_premarket_stage_preserves_existing_auction_input(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "auction",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "premarket",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertIn("auctionInput", today)
+        self.assertEqual(today["auctionInput"]["dataCompleteness"], "MANUAL_AUCTION")
+
 
 if __name__ == "__main__":
     unittest.main()
