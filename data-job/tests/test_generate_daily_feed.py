@@ -22,6 +22,8 @@ class GenerateDailyFeedTest(unittest.TestCase):
                     str(SCRIPT),
                     "--trade-date",
                     "2026-05-25",
+                    "--stage",
+                    "auction",
                     "--fixture",
                     str(FIXTURE),
                     "--output-dir",
@@ -40,6 +42,31 @@ class GenerateDailyFeedTest(unittest.TestCase):
         self.assertEqual(today["source"]["mode"], "SAMPLE_BOOTSTRAP")
         self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-25")
         self.assertEqual(today["auctionInput"]["tradeDate"], "2026-05-25")
+
+    def test_premarket_stage_does_not_write_auction_input(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "premarket",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertIn("preMarketInput", today)
+        self.assertNotIn("auctionInput", today)
 
 
 if __name__ == "__main__":
