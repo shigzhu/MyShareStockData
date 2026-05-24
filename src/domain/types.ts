@@ -2,6 +2,7 @@ export type TradeStage = "PREMARKET_0830" | "AUCTION_0925";
 export type MarketGateStatus = "TRADABLE" | "NO_TRADE";
 export type CandidateRole = "PRIMARY" | "CONFIRMED" | "BACKUP" | "REJECTED";
 export type DataCompleteness = "FULL" | "PARTIAL" | "MANUAL_AUCTION" | "MISSING";
+export type DataRefreshStatus = "PENDING" | "SUCCESS" | "FAILED" | "MISSING_REQUIRED_DATA" | "NOT_RECOMMENDED";
 export type HeatTemperature = "冷门" | "升温" | "热门" | "过热" | "异常刷屏";
 export type DeleteReason = "过热" | "不喜欢" | "已买过" | "风险大" | "题材不认可" | "其他";
 
@@ -37,6 +38,56 @@ export interface StockMetrics {
   majorNegativeEvent: boolean;
   attentionScore: number;
   discussionHeat: DiscussionHeatMetrics;
+  quant: QuantMetrics;
+  hotMoney: HotMoneyMetrics;
+}
+
+export interface QuantMetrics {
+  pe?: number;
+  pb?: number;
+  ps?: number;
+  evToEbitda?: number;
+  revenueGrowthYoYPct?: number;
+  revenueGrowthQoQPct?: number;
+  profitGrowthYoYPct?: number;
+  epsGrowthPct?: number;
+  roePct?: number;
+  roaPct?: number;
+  grossMarginPct?: number;
+  netMarginPct?: number;
+  debtAssetRatioPct?: number;
+  operatingCashFlowCoverage?: number;
+  return1dPct?: number;
+  relativeStrengthRank?: number;
+  rsi14?: number;
+  northboundNetBuyScore?: number;
+  marginBalanceTrendScore?: number;
+  institutionHoldingScore?: number;
+  volatility20dPct?: number;
+  maxDrawdown60dPct?: number;
+  marketCapRankScore?: number;
+}
+
+export interface HotMoneyMetrics {
+  themeHotspotScore: number;
+  policyCatalystScore: number;
+  resonanceScore: number;
+  limitBoardScore: number;
+  boardContinuityScore: number;
+  sealStrengthScore: number;
+  turnoverStructureScore: number;
+  volumePriceFitScore: number;
+  dragonPositionScore: number;
+  hasDragonTigerSeat: boolean;
+  seatNetBuyScore: number;
+  substituteSeatSignalScore: number;
+  floatMarketCapScore: number;
+  shareholderConcentrationScore: number;
+  emotionProfitScore: number;
+  limitUpCountInMarketScore: number;
+  onePriceLimitUp: boolean;
+  shrinkAccelerating: boolean;
+  lateRelayRisk: boolean;
 }
 
 export interface DiscussionHeatMetrics {
@@ -55,6 +106,42 @@ export interface DiscussionHeatScore {
   reasons: string[];
   risks: string[];
   reject: boolean;
+}
+
+export interface QuantScore {
+  total: number;
+  valuation: number;
+  growth: number;
+  quality: number;
+  momentum: number;
+  capital: number;
+  riskControl: number;
+  passed: boolean;
+  reasons: string[];
+  risks: string[];
+  missingRequiredData: string[];
+}
+
+export interface HotMoneyScore {
+  total: number;
+  themeMatch: number;
+  limitBoard: number;
+  turnoverStructure: number;
+  seatSignal: number;
+  floatSize: number;
+  emotionEffect: number;
+  eligibleForPrimary: boolean;
+  overheated: boolean;
+  reasons: string[];
+  risks: string[];
+}
+
+export interface ScoreBreakdown {
+  trading: number;
+  hotMoney: number;
+  discussion: number;
+  quant: number;
+  total: number;
 }
 
 export interface ThemeMetrics {
@@ -133,6 +220,9 @@ export interface CandidatePlan {
   score: number;
   tradingScore: number;
   heat: DiscussionHeatScore;
+  quant: QuantScore;
+  hotMoney: HotMoneyScore;
+  scoreBreakdown: ScoreBreakdown;
   reasons: string[];
   risks: string[];
   entryPlan: string;
@@ -159,4 +249,19 @@ export interface StrategyResult {
   candidates: CandidatePlan[];
   rejections: Rejection[];
   dataCompleteness: DataCompleteness;
+}
+
+export interface RecommendationJobState {
+  stage: TradeStage;
+  tradeDate: string;
+  status: DataRefreshStatus;
+  message: string;
+  result?: StrategyResult;
+  updatedAt?: string;
+}
+
+export interface IntradayRefreshState {
+  tradeDate: string;
+  preMarket: RecommendationJobState;
+  auction: RecommendationJobState;
 }

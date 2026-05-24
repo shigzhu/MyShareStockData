@@ -40,6 +40,78 @@ describe("generatePreMarketPlan", () => {
     expect(coldStock?.heat.weightedScore).toBeLessThan(12);
   });
 
+  it("builds a 100 point score from 20 trading, 20 hot-money, 30 discussion, and 30 quant points", () => {
+    const result = generatePreMarketPlan(sampleTradingDay);
+    const candidate = result.candidates[0];
+
+    expect(candidate.scoreBreakdown.trading).toBeLessThanOrEqual(20);
+    expect(candidate.scoreBreakdown.hotMoney).toBeLessThanOrEqual(20);
+    expect(candidate.scoreBreakdown.discussion).toBeLessThanOrEqual(30);
+    expect(candidate.scoreBreakdown.quant).toBeLessThanOrEqual(30);
+    expect(candidate.scoreBreakdown.total).toBe(candidate.score);
+    expect(candidate.scoreBreakdown.total).toBe(
+      candidate.scoreBreakdown.trading +
+        candidate.scoreBreakdown.hotMoney +
+        candidate.scoreBreakdown.discussion +
+        candidate.scoreBreakdown.quant
+    );
+  });
+
+  it("rejects stocks when required quant data is missing", () => {
+    const result = generatePreMarketPlan({
+      ...sampleTradingDay,
+      themes: sampleTradingDay.themes.map((theme) => ({
+        ...theme,
+        stocks: theme.stocks.map((stock) =>
+          stock.code === "300750"
+            ? {
+                ...stock,
+                quant: {
+                  ...stock.quant,
+                  grossMarginPct: undefined
+                }
+              }
+            : stock
+        )
+      }))
+    });
+
+    expect(result.candidates.some((candidate) => candidate.stock.code === "300750")).toBe(false);
+    expect(result.rejections.some((rejection) => rejection.reason.includes("关键量化数据缺失"))).toBe(true);
+  });
+
+  it("does not assign primary to candidates without clear hot-money logic", () => {
+    const result = generatePreMarketPlan({
+      ...sampleTradingDay,
+      themes: sampleTradingDay.themes.map((theme) => ({
+        ...theme,
+        stocks: theme.stocks.map((stock) => ({
+          ...stock,
+          hotMoney: {
+            ...stock.hotMoney,
+            themeHotspotScore: 15,
+            policyCatalystScore: 15,
+            resonanceScore: 15,
+            limitBoardScore: 15,
+            boardContinuityScore: 15,
+            sealStrengthScore: 15,
+            turnoverStructureScore: 20,
+            volumePriceFitScore: 20,
+            hasDragonTigerSeat: false,
+            seatNetBuyScore: 0,
+            substituteSeatSignalScore: 15,
+            emotionProfitScore: 20,
+            limitUpCountInMarketScore: 20
+          }
+        }))
+      }))
+    });
+
+    expect(result.candidates).not.toHaveLength(0);
+    expect(result.candidates[0].role).toBe("BACKUP");
+    expect(result.summary).toContain("无清晰游资首推");
+  });
+
   it("rejects high-position stocks with extreme discussion heat", () => {
     const result = generatePreMarketPlan({
       ...sampleTradingDay,
@@ -80,5 +152,42 @@ describe("generateAuctionPlan", () => {
     expect(result.candidates[0].stock.code).toBe("300750");
     expect(result.candidates.length).toBeGreaterThanOrEqual(3);
     expect(result.candidates[1].role).toBe("BACKUP");
+  });
+
+  it("keeps 9:25 primary limited to confirmed candidates with hot-money eligibility", () => {
+    const input = {
+      ...sampleTradingDay,
+      themes: sampleTradingDay.themes.map((theme) => ({
+        ...theme,
+        stocks: theme.stocks.map((stock) =>
+          stock.code === "300750"
+            ? {
+                ...stock,
+                hotMoney: {
+                  ...stock.hotMoney,
+                  themeHotspotScore: 15,
+                  policyCatalystScore: 15,
+                  resonanceScore: 15,
+                  limitBoardScore: 15,
+                  boardContinuityScore: 15,
+                  sealStrengthScore: 15,
+                  turnoverStructureScore: 20,
+                  volumePriceFitScore: 20,
+                  hasDragonTigerSeat: false,
+                  seatNetBuyScore: 0,
+                  substituteSeatSignalScore: 15,
+                  emotionProfitScore: 20,
+                  limitUpCountInMarketScore: 20
+                }
+              }
+            : stock
+        )
+      }))
+    };
+    const premarket = generatePreMarketPlan(input);
+    const result = generateAuctionPlan(input, premarket);
+
+    expect(result.candidates[0].stock.code).not.toBe("300750");
+    expect(result.candidates[0].hotMoney.eligibleForPrimary).toBe(true);
   });
 });
