@@ -12,7 +12,7 @@ FIXTURE = ROOT / "data-job" / "fixtures" / "sample_trading_day.json"
 
 
 class GenerateDailyFeedTest(unittest.TestCase):
-    def test_writes_today_and_history_feed_files(self):
+    def test_writes_today_and_history_feed_files_from_fixture_source(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir) / "data"
 
@@ -24,6 +24,8 @@ class GenerateDailyFeedTest(unittest.TestCase):
                     "2026-05-25",
                     "--stage",
                     "auction",
+                    "--source",
+                    "fixture",
                     "--fixture",
                     str(FIXTURE),
                     "--output-dir",
@@ -43,6 +45,84 @@ class GenerateDailyFeedTest(unittest.TestCase):
         self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-25")
         self.assertEqual(today["auctionInput"]["tradeDate"], "2026-05-25")
 
+    def test_marks_fixture_fallback_when_real_source_fails(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "eastmoney",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                    "--eastmoney-theme-count",
+                    "0",
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(today["source"]["mode"], "SAMPLE_FALLBACK")
+        self.assertIn("fallbackReason", today["source"])
+        self.assertEqual(today["preMarketInput"]["dataCompleteness"], "MISSING")
+
+    def test_auction_failure_preserves_existing_premarket_input(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "auction",
+                    "--source",
+                    "eastmoney",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                    "--eastmoney-theme-count",
+                    "0",
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(today["source"]["mode"], "REAL_PARTIAL_AUCTION_MISSING")
+        self.assertEqual(today["preMarketInput"]["dataCompleteness"], "FULL")
+        self.assertNotIn("auctionInput", today)
+        self.assertIn("auctionFailureReason", today["source"])
+
     def test_premarket_stage_does_not_write_auction_input(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir) / "data"
@@ -55,6 +135,8 @@ class GenerateDailyFeedTest(unittest.TestCase):
                     "2026-05-25",
                     "--stage",
                     "premarket",
+                    "--source",
+                    "fixture",
                     "--fixture",
                     str(FIXTURE),
                     "--output-dir",
@@ -80,6 +162,8 @@ class GenerateDailyFeedTest(unittest.TestCase):
                     "2026-05-25",
                     "--stage",
                     "auction",
+                    "--source",
+                    "fixture",
                     "--fixture",
                     str(FIXTURE),
                     "--output-dir",
@@ -95,6 +179,8 @@ class GenerateDailyFeedTest(unittest.TestCase):
                     "2026-05-25",
                     "--stage",
                     "premarket",
+                    "--source",
+                    "fixture",
                     "--fixture",
                     str(FIXTURE),
                     "--output-dir",
