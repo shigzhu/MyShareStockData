@@ -265,3 +265,109 @@ export interface IntradayRefreshState {
   preMarket: RecommendationJobState;
   auction: RecommendationJobState;
 }
+
+export type ReviewPhase = "INTRADAY_OBSERVATION" | "CLOSE_REVIEW" | "THIRD_DAY_FOLLOW_UP";
+export type ReviewOutcome = "SUCCESS" | "NEUTRAL" | "FAILED" | "MISSING_MARKET_DATA";
+export type TradeExecutionOutcome = "PROFIT" | "LOSS" | "BREAKEVEN" | "NOT_TRADED" | "OPEN";
+export type RuleSuggestionStatus = "PENDING" | "APPROVED" | "REJECTED" | "DEFERRED";
+export type RuleSuggestionType =
+  | "FACTOR_WEIGHT"
+  | "FILTER_ADD"
+  | "FILTER_TIGHTEN"
+  | "FILTER_RELAX"
+  | "MARKET_STAGE_SWITCH"
+  | "DISCIPLINE";
+export type TradeReason =
+  | "按计划执行"
+  | "追高"
+  | "低吸"
+  | "打板"
+  | "止损"
+  | "止盈"
+  | "情绪冲动"
+  | "临盘放弃"
+  | "未达到买点";
+export type HomeFocus =
+  | "TODAY_RECOMMENDATION"
+  | "INTRADAY_REVIEW"
+  | "CLOSE_REVIEW"
+  | "THIRD_DAY_FOLLOW_UP"
+  | "CLOSED";
+
+export interface RecommendationSnapshot {
+  id: string;
+  tradeDate: string;
+  stage: TradeStage;
+  generatedAt: string;
+  result: StrategyResult;
+}
+
+export interface StoredDailyPlan {
+  tradeDate: string;
+  preMarket?: StrategyResult;
+  auction?: StrategyResult;
+  snapshots: RecommendationSnapshot[];
+}
+
+export interface ReviewMarketData {
+  code: string;
+  name: string;
+  recommendationTradeDate: string;
+  reviewTradeDate: string;
+  buyPrice?: number;
+  closePrice?: number;
+  highPrice?: number;
+  indexReturnPct?: number;
+  sectorReturnPct?: number;
+}
+
+export interface CandidateReview {
+  id: string;
+  recommendationTradeDate: string;
+  reviewTradeDate: string;
+  stage: TradeStage;
+  code: string;
+  name: string;
+  role: CandidateRole;
+  phase: ReviewPhase;
+  systemReturnPct?: number;
+  outcome: ReviewOutcome;
+  beatIndex?: boolean;
+  beatSector?: boolean;
+  attribution: string[];
+  ruleSuggestionIds: string[];
+  updatedAt: string;
+}
+
+export interface TradeLogEntry {
+  id: string;
+  recommendationTradeDate: string;
+  stage: TradeStage;
+  code: string;
+  name: string;
+  bought: boolean;
+  buyPrice?: number;
+  sellPrice?: number;
+  positionPct?: number;
+  buyTime?: string;
+  sellTime?: string;
+  reasons: TradeReason[];
+  note: string;
+  outcome: TradeExecutionOutcome;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RuleSuggestion {
+  id: string;
+  createdAt: string;
+  recommendationTradeDate: string;
+  code?: string;
+  name?: string;
+  type: RuleSuggestionType;
+  title: string;
+  detail: string;
+  evidence: string[];
+  marketStage: string;
+  status: RuleSuggestionStatus;
+}
