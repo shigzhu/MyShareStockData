@@ -81,6 +81,10 @@ class EastMoneyAdapterTest(unittest.TestCase):
         self.assertEqual(stock["themeId"], "BK0890")
         self.assertEqual(stock["lastClose"], 60.59)
         self.assertEqual(stock["turnoverAmount"], 1_047_150_482)
+        self.assertLessEqual(stock["return5dPct"], 18)
+        self.assertLessEqual(stock["return10dPct"], 28)
+        self.assertLessEqual(stock["distanceFromMa5Pct"], 9)
+        self.assertLessEqual(stock["distanceFromMa10Pct"], 15)
         self.assertGreater(stock["attentionScore"], 0)
         self.assertGreaterEqual(len(calls), 3)
 

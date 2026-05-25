@@ -2,16 +2,40 @@ import argparse
 import json
 import sys
 from copy import deepcopy
-from datetime import date
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from adapters.eastmoney import EastMoneyAdapter
 
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+
+def beijing_today(now_utc: str | None = None) -> str:
+    return beijing_now(now_utc).date().isoformat()
+
+
+def beijing_now(now_utc: str | None = None) -> datetime:
+    if now_utc:
+        normalized = now_utc.replace("Z", "+00:00")
+        current = datetime.fromisoformat(normalized)
+        if current.tzinfo is None:
+            current = current.replace(tzinfo=timezone.utc)
+    else:
+        current = datetime.now(timezone.utc)
+
+    return current.astimezone(BEIJING_TZ)
+
+
+def is_late_auction_refresh(args: argparse.Namespace) -> bool:
+    now = beijing_now(args.now_utc)
+    return args.stage == "auction" and (now.hour, now.minute) > (9, 35)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate the GitHub-hosted A-share recommendation feed.")
-    parser.add_argument("--trade-date", default=date.today().isoformat(), help="Trade date in YYYY-MM-DD format.")
+    parser.add_argument("--trade-date", help="Trade date in YYYY-MM-DD format. Defaults to Asia/Shanghai date.")
+    parser.add_argument("--now-utc", help="UTC timestamp used only by tests to verify Asia/Shanghai date handling.")
     parser.add_argument(
         "--stage",
         choices=["premarket", "auction"],
@@ -32,7 +56,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--eastmoney-theme-count", type=int, default=3, help="Number of EastMoney concept themes to fetch.")
     parser.add_argument("--eastmoney-stocks-per-theme", type=int, default=8, help="Number of stocks kept per theme.")
     parser.add_argument("--output-dir", default="data", help="Output directory for today.json and history files.")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if not args.trade_date:
+        args.trade_date = beijing_today(args.now_utc)
+    return args
 
 
 def load_fixture(path: Path, trade_date: str) -> dict:
@@ -73,6 +100,13 @@ def load_trading_day_input(args: argparse.Namespace, existing_feed: dict) -> tup
                 "财务量化字段使用公开行情可得字段派生，后续可接入 Tushare 增强",
             ],
         }
+
+        if args.stage == "auction" and "auctionInput" in existing_feed and is_late_auction_refresh(args):
+            return pre_market_input, {
+                **source,
+                "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
+                "description": "东方财富公开行情已更新8:30准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
+            }
 
         if args.stage == "auction":
             return adapter.fetch_auction_input(args.trade_date, pre_market_input), source
@@ -133,12 +167,14 @@ def build_feed(
     feed = {
         "schemaVersion": 1,
         "tradeDate": trade_date,
-        "generatedAt": date.today().isoformat(),
+        "generatedAt": trade_date,
         "source": source,
         "preMarketInput": pre_market_input
     }
 
-    if stage == "auction" and source.get("mode") != "REAL_PARTIAL_AUCTION_MISSING":
+    if source.get("mode") == "REAL_PARTIAL_AUCTION_PRESERVED" and "auctionInput" in existing_feed:
+        feed["auctionInput"] = existing_feed["auctionInput"]
+    elif stage == "auction" and source.get("mode") != "REAL_PARTIAL_AUCTION_MISSING":
         feed["auctionInput"] = auction_input
     elif "auctionInput" in existing_feed:
         feed["auctionInput"] = existing_feed["auctionInput"]
