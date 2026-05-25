@@ -11,8 +11,7 @@ import type {
 } from "./types";
 
 export interface HomeFocusOptions {
-  hasTodayPlan?: boolean;
-  hasReviewTarget?: boolean;
+  preferFollowUpBeforeOpen?: boolean;
 }
 
 function roundPct(value: number) {
@@ -31,7 +30,7 @@ export function getHomeFocus(
   const minutes = now.getHours() * 60 + now.getMinutes();
 
   if (minutes < 9 * 60 + 30) {
-    return options.hasReviewTarget && options.hasTodayPlan !== true ? "THIRD_DAY_FOLLOW_UP" : "TODAY_RECOMMENDATION";
+    return options.preferFollowUpBeforeOpen === true ? "THIRD_DAY_FOLLOW_UP" : "TODAY_RECOMMENDATION";
   }
 
   if (minutes < 15 * 60) {
@@ -84,8 +83,12 @@ function outcomeFromReturn(returnPct?: number): ReviewOutcome {
   return "FAILED";
 }
 
-function buildAttribution(candidate: CandidatePlan, outcome: ReviewOutcome, systemReturnPct?: number): string[] {
+function buildAttribution(candidate: CandidatePlan, outcome: ReviewOutcome, systemReturnPct?: number, dataMatches = true): string[] {
   if (outcome === "MISSING_MARKET_DATA") {
+    if (!dataMatches) {
+      return ["复盘行情数据不匹配，暂不判断系统推荐成败"];
+    }
+
     return ["缺复盘行情，暂不判断系统推荐成败"];
   }
 
@@ -124,7 +127,9 @@ export function buildCandidateReview(
   marketData: ReviewMarketData,
   updatedAt: string
 ): CandidateReview {
-  const hasReturnData = marketData.buyPrice !== undefined && marketData.closePrice !== undefined && marketData.buyPrice > 0;
+  const dataMatches = marketData.code === candidate.stock.code && marketData.recommendationTradeDate === result.tradeDate;
+  const hasReturnData =
+    dataMatches && marketData.buyPrice !== undefined && marketData.closePrice !== undefined && marketData.buyPrice > 0;
   const systemReturnPct = hasReturnData
     ? roundPct(((marketData.closePrice - marketData.buyPrice) / marketData.buyPrice) * 100)
     : undefined;
@@ -145,7 +150,7 @@ export function buildCandidateReview(
     beatIndex: systemReturnPct !== undefined && marketData.indexReturnPct !== undefined ? systemReturnPct > marketData.indexReturnPct : undefined,
     beatSector:
       systemReturnPct !== undefined && marketData.sectorReturnPct !== undefined ? systemReturnPct > marketData.sectorReturnPct : undefined,
-    attribution: buildAttribution(candidate, outcome, systemReturnPct),
+    attribution: buildAttribution(candidate, outcome, systemReturnPct, dataMatches),
     ruleSuggestionIds: outcome === "FAILED" ? [`rule-${idSeed}`] : [],
     updatedAt
   };

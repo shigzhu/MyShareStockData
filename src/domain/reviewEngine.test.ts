@@ -20,7 +20,10 @@ describe("reviewEngine", () => {
     expect(getHomeFocus(new Date(2026, 4, 25, 8, 31), true)).toBe("TODAY_RECOMMENDATION");
     expect(getHomeFocus(new Date(2026, 4, 25, 10, 15), true)).toBe("INTRADAY_REVIEW");
     expect(getHomeFocus(new Date(2026, 4, 25, 15, 10), true)).toBe("CLOSE_REVIEW");
-    expect(getHomeFocus(new Date(2026, 4, 26, 8, 10), true, { hasReviewTarget: true })).toBe("THIRD_DAY_FOLLOW_UP");
+    expect(getHomeFocus(new Date(2026, 4, 26, 8, 10), true)).toBe("TODAY_RECOMMENDATION");
+    expect(getHomeFocus(new Date(2026, 4, 26, 8, 10), true, { preferFollowUpBeforeOpen: true })).toBe(
+      "THIRD_DAY_FOLLOW_UP"
+    );
     expect(getHomeFocus(new Date(2026, 4, 24, 10, 0), false)).toBe("CLOSED");
   });
 
@@ -121,6 +124,48 @@ describe("reviewEngine", () => {
     expect(review.outcome).toBe("MISSING_MARKET_DATA");
     expect(review.systemReturnPct).toBeUndefined();
     expect(review.attribution.join(" ")).toContain("缺复盘行情");
+  });
+
+  it("labels mismatched market data without inventing a return", () => {
+    const result = resultWithPrimary();
+    const candidate = getPrimaryCandidate(result);
+    if (!candidate) {
+      throw new Error("sample should contain a primary candidate");
+    }
+
+    const mismatchedCodeReview = buildCandidateReview(
+      result,
+      candidate,
+      {
+        code: "000001",
+        name: "平安银行",
+        recommendationTradeDate: result.tradeDate,
+        reviewTradeDate: "2026-05-22",
+        buyPrice: 10,
+        closePrice: 10.35
+      },
+      "2026-05-22T15:10:00"
+    );
+    const mismatchedDateReview = buildCandidateReview(
+      result,
+      candidate,
+      {
+        code: candidate.stock.code,
+        name: candidate.stock.name,
+        recommendationTradeDate: "2026-05-20",
+        reviewTradeDate: "2026-05-22",
+        buyPrice: 10,
+        closePrice: 10.35
+      },
+      "2026-05-22T15:10:00"
+    );
+
+    expect(mismatchedCodeReview.outcome).toBe("MISSING_MARKET_DATA");
+    expect(mismatchedCodeReview.systemReturnPct).toBeUndefined();
+    expect(mismatchedCodeReview.attribution.join(" ")).toContain("数据不匹配");
+    expect(mismatchedDateReview.outcome).toBe("MISSING_MARKET_DATA");
+    expect(mismatchedDateReview.systemReturnPct).toBeUndefined();
+    expect(mismatchedDateReview.attribution.join(" ")).toContain("数据不匹配");
   });
 
   it("generates pending rule suggestions for failed candidates with filtering language", () => {
