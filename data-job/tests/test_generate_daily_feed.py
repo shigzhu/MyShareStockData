@@ -12,7 +12,7 @@ FIXTURE = ROOT / "data-job" / "fixtures" / "sample_trading_day.json"
 
 
 class GenerateDailyFeedTest(unittest.TestCase):
-    def test_defaults_to_beijing_trade_date(self):
+    def test_defaults_to_current_beijing_calendar_date(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir) / "data"
 
@@ -39,6 +39,34 @@ class GenerateDailyFeedTest(unittest.TestCase):
         self.assertEqual(today["tradeDate"], "2026-05-25")
         self.assertEqual(today["generatedAt"], "2026-05-25")
         self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-25")
+
+    def test_beijing_calendar_date_moves_with_current_day(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--now-utc",
+                    "2026-05-26T16:30:00Z",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(today["tradeDate"], "2026-05-27")
+        self.assertEqual(today["generatedAt"], "2026-05-27")
+        self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-27")
 
     def test_writes_today_and_history_feed_files_from_fixture_source(self):
         with tempfile.TemporaryDirectory() as temp_dir:
