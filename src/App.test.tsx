@@ -279,4 +279,15 @@ describe("App", () => {
 
     expect(screen.getByText("已确认")).toBeInTheDocument();
   });
+
+  it("exports real trade logs as CSV text", async () => {
+    localStorage.clear();
+    const user = userEvent.setup();
+    renderWithSampleProvider(new Date(2026, 4, 21, 9, 26));
+
+    expect(await screen.findByText("9:25 成功")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "导出CSV" }));
+
+    expect((screen.getByLabelText("CSV导出内容") as HTMLTextAreaElement).value).toContain("推荐日期,阶段,代码,名称");
+  });
 });

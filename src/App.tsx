@@ -695,6 +695,7 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
   const [deletions, setDeletions] = useState<RecommendationDeletion[]>(() => reviewStore.loadDeletions());
   const [tradeLogs, setTradeLogs] = useState<TradeLogEntry[]>(() => reviewStore.loadTradeLogs());
   const [ruleSuggestions, setRuleSuggestions] = useState<RuleSuggestion[]>(() => reviewStore.loadRuleSuggestions());
+  const [csvExport, setCsvExport] = useState("");
   const phoneDate = formatLocalDate(currentTime);
   const isTradingDay = isAshareTradingDay(phoneDate);
   const currentGeneratedPlan = refreshState.tradeDate === phoneDate ? planFromRefreshState(refreshState) : undefined;
@@ -856,6 +857,10 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
     setRuleSuggestions(reviewStore.loadRuleSuggestions());
   }
 
+  function handleExportCsv() {
+    setCsvExport(reviewStore.exportTradeLogsCsv());
+  }
+
   return (
     <main className="app">
       <header className="topbar">
@@ -965,6 +970,20 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
           )}
         </>
       )}
+
+      <section className="export-panel">
+        <div className="section-title">
+          <Clock size={22} />
+          <div>
+            <h2>导出</h2>
+            <p>第一版支持 CSV 分析导出；加密备份后续再做。</p>
+          </div>
+        </div>
+        <button className="secondary-action" type="button" onClick={handleExportCsv}>
+          导出CSV
+        </button>
+        {csvExport && <textarea aria-label="CSV导出内容" readOnly value={csvExport} />}
+      </section>
 
       <footer className="disclaimer">
         <AlertTriangle size={18} />

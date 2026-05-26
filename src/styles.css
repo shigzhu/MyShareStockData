@@ -509,6 +509,21 @@ h1 {
   min-height: 34px;
 }
 
+.export-panel {
+  margin-top: 20px;
+}
+
+.export-panel textarea {
+  border: 1px solid #cfd6e2;
+  border-radius: 8px;
+  color: #172033;
+  font: 12px Consolas, monospace;
+  margin-top: 10px;
+  min-height: 120px;
+  padding: 10px;
+  width: 100%;
+}
+
 .score-row {
   align-items: center;
   background: #f6f8fb;
