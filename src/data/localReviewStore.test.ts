@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { buildRecommendationSnapshot } from "../domain/reviewEngine";
 import { generatePreMarketPlan } from "../domain/strategyEngine";
 import type { RuleSuggestion, TradeLogEntry } from "../domain/types";
@@ -6,24 +6,6 @@ import { createLocalReviewStore } from "./localReviewStore";
 import { sampleTradingDay } from "./sampleTradingDay";
 
 describe("localReviewStore", () => {
-  const memoryStorage = new Map<string, string>();
-
-  beforeEach(() => {
-    memoryStorage.clear();
-    vi.stubGlobal("localStorage", {
-      getItem: (key: string) => memoryStorage.get(key) ?? null,
-      setItem: (key: string, value: string) => {
-        memoryStorage.set(key, value);
-      },
-      removeItem: (key: string) => {
-        memoryStorage.delete(key);
-      },
-      clear: () => {
-        memoryStorage.clear();
-      }
-    });
-  });
-
   it("saves and loads recommendation snapshots by trade date", () => {
     const store = createLocalReviewStore("test-stock-review");
     const result = generatePreMarketPlan(sampleTradingDay);

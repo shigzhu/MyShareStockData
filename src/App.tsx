@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Activity, AlertTriangle, ChevronDown, Clock, ShieldCheck, Trash2, Trophy } from "lucide-react";
 import { defaultDataProvider } from "./data/defaultDataProvider";
+import { createLocalReviewStore } from "./data/localReviewStore";
 import type { DataProvider } from "./domain/dataProvider";
 import { runIntradayRefresh } from "./domain/intradayJobs";
+import { buildRecommendationSnapshot } from "./domain/reviewEngine";
 import { formatLocalDate, isAshareTradingDay } from "./domain/tradingCalendar";
 import type {
   CandidatePlan,
@@ -17,6 +19,7 @@ import type {
 } from "./domain/types";
 
 const deleteReasons: DeleteReason[] = ["过热", "不喜欢", "已买过", "风险大", "题材不认可", "其他"];
+const reviewStore = createLocalReviewStore();
 
 interface DailyPlan {
   tradeDate: string;
@@ -343,11 +346,15 @@ function stageShortLabel(stage: TradeStage) {
   return stage === "PREMARKET_0830" ? "8:30" : "9:25";
 }
 
+function statusClassName(status: DataRefreshStatus) {
+  return `job-status job-status-${status.toLowerCase().replace(/_/g, "-")}`;
+}
+
 function DataStatusPanel({ preMarket, auction }: { preMarket: RecommendationJobState; auction: RecommendationJobState }) {
   return (
     <section className="job-status-panel">
       {[preMarket, auction].map((job) => (
-        <div key={job.stage} className={`job-status job-status-${job.status.toLowerCase().replaceAll("_", "-")}`}>
+        <div key={job.stage} className={statusClassName(job.status)}>
           <strong>
             {stageShortLabel(job.stage)} {getDataRefreshLabel(job.status)}
           </strong>
@@ -383,12 +390,19 @@ function sortedPlans(plansByDate: Record<string, DailyPlan>) {
   return Object.values(plansByDate).sort((a, b) => b.tradeDate.localeCompare(a.tradeDate));
 }
 
+function localTimestamp(date: Date) {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${formatLocalDate(date)}T${hours}:${minutes}:${seconds}`;
+}
+
 export default function App({ today, dataProvider = defaultDataProvider }: { today?: Date; dataProvider?: DataProvider }) {
   const [currentTime, setCurrentTime] = useState(() => today ?? new Date());
   const [refreshState, setRefreshState] = useState(() => initialRefreshState(formatLocalDate(today ?? new Date())));
   const refreshStateRef = useRef(refreshState);
-  const [plansByDate, setPlansByDate] = useState<Record<string, DailyPlan>>({});
-  const [deletions, setDeletions] = useState<RecommendationDeletion[]>([]);
+  const [plansByDate, setPlansByDate] = useState<Record<string, DailyPlan>>(() => reviewStore.loadDailyPlans());
+  const [deletions, setDeletions] = useState<RecommendationDeletion[]>(() => reviewStore.loadDeletions());
   const phoneDate = formatLocalDate(currentTime);
   const isTradingDay = isAshareTradingDay(phoneDate);
   const currentGeneratedPlan = refreshState.tradeDate === phoneDate ? planFromRefreshState(refreshState) : undefined;
@@ -413,10 +427,23 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
 
       const generatedPlan = planFromRefreshState(nextState);
       if (generatedPlan) {
-        setPlansByDate((current) => ({
-          ...current,
-          [generatedPlan.tradeDate]: mergePlan(current[generatedPlan.tradeDate], generatedPlan)
-        }));
+        const updatedAt = nextState.auction.updatedAt ?? nextState.preMarket.updatedAt ?? localTimestamp(time);
+        if (nextState.preMarket.result) {
+          reviewStore.saveSnapshot(buildRecommendationSnapshot(nextState.preMarket.result, updatedAt));
+        }
+        if (nextState.auction.result) {
+          reviewStore.saveSnapshot(buildRecommendationSnapshot(nextState.auction.result, updatedAt));
+        }
+        setPlansByDate((current) => {
+          const merged = {
+            ...current,
+            [generatedPlan.tradeDate]: mergePlan(current[generatedPlan.tradeDate], generatedPlan)
+          };
+          return {
+            ...merged,
+            ...reviewStore.loadDailyPlans()
+          };
+        });
       }
     },
     [dataProvider]
@@ -453,18 +480,17 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
   const visibleAuctionPrimary = auction?.candidates.find((candidate) => !hiddenKeys.has(recommendationKey(auction.stage, candidate)));
 
   function handleDelete(stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) {
-    setDeletions((current) => [
-      ...current,
-      {
-        code: candidate.stock.code,
-        name: candidate.stock.name,
-        tradeDate: phoneDate,
-        stage,
-        role: candidate.role,
-        reason,
-        deletedAt: new Date().toISOString()
-      }
-    ]);
+    const deletion: RecommendationDeletion = {
+      code: candidate.stock.code,
+      name: candidate.stock.name,
+      tradeDate: phoneDate,
+      stage,
+      role: candidate.role,
+      reason,
+      deletedAt: localTimestamp(new Date())
+    };
+    reviewStore.saveDeletion(deletion);
+    setDeletions(reviewStore.loadDeletions());
   }
 
   return (

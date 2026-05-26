@@ -16,6 +16,7 @@ function providerWith(status: "FAILED" | "MISSING_REQUIRED_DATA", message: strin
 describe("App", () => {
   afterEach(() => {
     vi.useRealTimers();
+    localStorage.clear();
   });
 
   async function flushRefresh() {
@@ -89,6 +90,23 @@ describe("App", () => {
     render(<App today={new Date(2026, 4, 21, 8, 35)} dataProvider={emptyProvider} />);
 
     expect(await screen.findByText("8:30 不推荐")).toBeInTheDocument();
+  });
+
+  it("renders data status labels on WebViews without String.replaceAll", async () => {
+    const originalReplaceAll = String.prototype.replaceAll;
+    // Older Android System WebView versions do not support replaceAll.
+    // The app should still render the shell and the failed status.
+    // @ts-expect-error simulates the missing WebView API.
+    String.prototype.replaceAll = undefined;
+
+    try {
+      render(<App today={new Date(2026, 4, 21, 8, 35)} dataProvider={providerWith("FAILED", "网络不可用")} />);
+
+      expect(await screen.findByText("8:30 失败")).toBeInTheDocument();
+      expect(screen.getByText("网络不可用")).toBeInTheDocument();
+    } finally {
+      String.prototype.replaceAll = originalReplaceAll;
+    }
   });
 
   it("puts daily primary recommendations first and groups history by month week and day", async () => {
@@ -181,5 +199,43 @@ describe("App", () => {
     expect(screen.getByText("2026-05-24")).toBeInTheDocument();
     expect(screen.getByText("今日未开市，好好休息！")).toBeInTheDocument();
     expect(screen.queryByText("今日首推")).not.toBeInTheDocument();
+  });
+
+  it("persists generated recommendation snapshots after refresh", async () => {
+    localStorage.clear();
+    renderWithSampleProvider(new Date(2026, 4, 21, 9, 26));
+
+    expect(await screen.findByText("9:25 成功")).toBeInTheDocument();
+
+    const raw = localStorage.getItem("a-share-review-learning-v1");
+    expect(raw).toContain("2026-05-21-PREMARKET_0830");
+    expect(raw).toContain("2026-05-21-AUCTION_0925");
+  });
+
+  it("reloads locally persisted recommendations before remote refresh completes", async () => {
+    localStorage.clear();
+    const first = renderWithSampleProvider(new Date(2026, 4, 21, 9, 26));
+    expect(await screen.findByText("9:25 成功")).toBeInTheDocument();
+    first.unmount();
+
+    render(<App today={new Date(2026, 4, 21, 7, 50)} dataProvider={providerWith("FAILED", "暂时离线")} />);
+
+    expect(screen.getAllByText("2026-05-21").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("今日首推")).toBeInTheDocument();
+  });
+
+  it("persists deletion choices locally", async () => {
+    localStorage.clear();
+    const user = userEvent.setup();
+    const first = renderWithSampleProvider(new Date(2026, 4, 21, 9, 0));
+
+    await screen.findByText("8:30 成功");
+    await user.click(screen.getAllByRole("button", { name: /删除/ })[0]);
+    await user.click(screen.getByRole("button", { name: "风险大" }));
+    first.unmount();
+
+    render(<App today={new Date(2026, 4, 21, 9, 0)} dataProvider={sampleDataProvider} />);
+
+    expect(await screen.findByText(/已删除 1 条推荐/)).toBeInTheDocument();
   });
 });
