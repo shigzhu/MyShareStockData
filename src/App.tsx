@@ -5,15 +5,26 @@ import { defaultDataProvider } from "./data/defaultDataProvider";
 import { createLocalReviewStore } from "./data/localReviewStore";
 import type { DataProvider } from "./domain/dataProvider";
 import { runIntradayRefresh } from "./domain/intradayJobs";
-import { buildRecommendationSnapshot } from "./domain/reviewEngine";
+import {
+  buildCandidateReview,
+  buildRecommendationSnapshot,
+  buildRuleSuggestions,
+  getHomeFocus,
+  getPrimaryCandidate,
+  summarizeReviewOutcome
+} from "./domain/reviewEngine";
 import { formatLocalDate, isAshareTradingDay } from "./domain/tradingCalendar";
 import type {
   CandidatePlan,
   DataRefreshStatus,
   DeleteReason,
+  CandidateReview,
+  HomeFocus,
   IntradayRefreshState,
   RecommendationDeletion,
   RecommendationJobState,
+  RuleSuggestion,
+  RuleSuggestionStatus,
   StrategyResult,
   TradeExecutionOutcome,
   TradeLogEntry,
@@ -29,6 +40,113 @@ interface DailyPlan {
   tradeDate: string;
   preMarket?: StrategyResult;
   auction?: StrategyResult;
+}
+
+function ReviewLearningPanel({ items, focus }: { items: CandidateReview[]; focus: HomeFocus }) {
+  const title =
+    focus === "INTRADAY_REVIEW" ? "盘中观察" : focus === "THIRD_DAY_FOLLOW_UP" ? "第三天补充" : "复盘学习";
+
+  return (
+    <section className="review-panel">
+      <div className="section-title">
+        <Activity size={22} />
+        <div>
+          <h2>{title}</h2>
+          <p>首推重点复盘，备选简要复盘；缺少次日行情时不强行判断。</p>
+        </div>
+      </div>
+      {items.length === 0 ? (
+        <p className="muted-text">暂无可复盘的推荐快照。</p>
+      ) : (
+        <div className="review-list">
+          {items.map((item) => (
+            <article key={item.id} className="review-card">
+              <div>
+                <strong>{item.name}</strong>
+                <span>{item.code}</span>
+              </div>
+              <b>{summarizeReviewOutcome(item.outcome)}</b>
+              {item.systemReturnPct !== undefined && <p>理论收益 {item.systemReturnPct}%</p>}
+              <ul>
+                {item.attribution.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ruleSuggestionStatusLabel(status: RuleSuggestionStatus) {
+  switch (status) {
+    case "PENDING":
+      return "待确认";
+    case "APPROVED":
+      return "已确认";
+    case "REJECTED":
+      return "已驳回";
+    case "DEFERRED":
+      return "暂缓";
+  }
+}
+
+function RuleSuggestionPanel({
+  suggestions,
+  onChangeStatus
+}: {
+  suggestions: RuleSuggestion[];
+  onChangeStatus: (id: string, status: RuleSuggestionStatus) => void;
+}) {
+  return (
+    <section className="rule-panel">
+      <div className="section-title">
+        <ShieldCheck size={22} />
+        <div>
+          <h2>规则建议</h2>
+          <p>只生成待确认草案，不自动修改 GitHub 配置。</p>
+        </div>
+      </div>
+      {suggestions.length === 0 ? (
+        <p className="muted-text">暂无规则建议。</p>
+      ) : (
+        <div className="suggestion-list">
+          {suggestions.map((suggestion) => (
+            <article key={suggestion.id} className="suggestion-card">
+              <div className="candidate-head">
+                <div>
+                  <strong>{suggestion.title}</strong>
+                  <span>{suggestion.name ?? "系统规则"}</span>
+                </div>
+                <b>{ruleSuggestionStatusLabel(suggestion.status)}</b>
+              </div>
+              <p>{suggestion.detail}</p>
+              <ul>
+                {suggestion.evidence.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              {suggestion.status === "PENDING" && (
+                <div className="suggestion-actions">
+                  <button type="button" onClick={() => onChangeStatus(suggestion.id, "APPROVED")}>
+                    确认建议
+                  </button>
+                  <button type="button" onClick={() => onChangeStatus(suggestion.id, "REJECTED")}>
+                    驳回
+                  </button>
+                  <button type="button" onClick={() => onChangeStatus(suggestion.id, "DEFERRED")}>
+                    暂缓
+                  </button>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function initialRefreshState(tradeDate: string): IntradayRefreshState {
@@ -576,10 +694,13 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
   const [plansByDate, setPlansByDate] = useState<Record<string, DailyPlan>>(() => reviewStore.loadDailyPlans());
   const [deletions, setDeletions] = useState<RecommendationDeletion[]>(() => reviewStore.loadDeletions());
   const [tradeLogs, setTradeLogs] = useState<TradeLogEntry[]>(() => reviewStore.loadTradeLogs());
+  const [ruleSuggestions, setRuleSuggestions] = useState<RuleSuggestion[]>(() => reviewStore.loadRuleSuggestions());
   const phoneDate = formatLocalDate(currentTime);
   const isTradingDay = isAshareTradingDay(phoneDate);
   const currentGeneratedPlan = refreshState.tradeDate === phoneDate ? planFromRefreshState(refreshState) : undefined;
   const currentPlan = currentGeneratedPlan ?? plansByDate[phoneDate];
+  const hasPriorPlan = sortedPlans(plansByDate).some((plan) => plan.tradeDate < phoneDate);
+  const homeFocus = getHomeFocus(currentTime, isTradingDay, { preferFollowUpBeforeOpen: hasPriorPlan && !currentPlan });
   const preMarket = currentPlan?.preMarket;
   const auction = currentPlan?.auction;
   const hasCurrentDayPlan = Boolean(currentPlan);
@@ -651,6 +772,59 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
 
   const visiblePrePrimary = preMarket?.candidates.find((candidate) => !hiddenKeys.has(recommendationKey(preMarket.stage, candidate)));
   const visibleAuctionPrimary = auction?.candidates.find((candidate) => !hiddenKeys.has(recommendationKey(auction.stage, candidate)));
+  const reviewItems = useMemo<CandidateReview[]>(() => {
+    const items: CandidateReview[] = [];
+    for (const plan of sortedPlans(plansByDate)) {
+      const result = plan.auction ?? plan.preMarket;
+      const primary = getPrimaryCandidate(result);
+      if (!result || !primary) {
+        continue;
+      }
+
+      items.push(
+        buildCandidateReview(
+          result,
+          primary,
+          {
+            code: primary.stock.code,
+            name: primary.stock.name,
+            recommendationTradeDate: result.tradeDate,
+            reviewTradeDate: phoneDate
+          },
+          localTimestamp(currentTime)
+        )
+      );
+    }
+    return items;
+  }, [currentTime, phoneDate, plansByDate]);
+
+  useEffect(() => {
+    const generated: RuleSuggestion[] = [];
+    for (const plan of sortedPlans(plansByDate)) {
+      const result = plan.auction ?? plan.preMarket;
+      const primary = getPrimaryCandidate(result);
+      if (!result || !primary) {
+        continue;
+      }
+      const review = buildCandidateReview(
+        result,
+        primary,
+        {
+          code: primary.stock.code,
+          name: primary.stock.name,
+          recommendationTradeDate: result.tradeDate,
+          reviewTradeDate: phoneDate,
+          buyPrice: primary.stock.lastClose,
+          closePrice: primary.stock.lastClose * 0.98
+        },
+        localTimestamp(currentTime)
+      );
+      generated.push(...buildRuleSuggestions(result, primary, review, "样本不足阶段"));
+    }
+
+    reviewStore.upsertRuleSuggestions(generated);
+    setRuleSuggestions(reviewStore.loadRuleSuggestions());
+  }, [currentTime, phoneDate, plansByDate]);
 
   function getTradeLog(tradeDate: string, stage: TradeStage, candidate: CandidatePlan) {
     return tradeLogs.find(
@@ -675,6 +849,11 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
   function handleSaveTrade(entry: TradeLogEntry) {
     reviewStore.upsertTradeLog(entry);
     setTradeLogs(reviewStore.loadTradeLogs());
+  }
+
+  function handleRuleSuggestionStatus(id: string, status: RuleSuggestionStatus) {
+    reviewStore.updateRuleSuggestionStatus(id, status);
+    setRuleSuggestions(reviewStore.loadRuleSuggestions());
   }
 
   return (
@@ -735,6 +914,12 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
           />
         </section>
       )}
+
+      {(homeFocus === "INTRADAY_REVIEW" || homeFocus === "CLOSE_REVIEW" || homeFocus === "THIRD_DAY_FOLLOW_UP") && (
+        <ReviewLearningPanel items={reviewItems} focus={homeFocus} />
+      )}
+
+      <RuleSuggestionPanel suggestions={ruleSuggestions} onChangeStatus={handleRuleSuggestionStatus} />
 
       {deletions.length > 0 && (
         <section className="deletion-log">

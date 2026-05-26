@@ -259,4 +259,24 @@ describe("App", () => {
     expect(screen.getAllByText("真实交易：盈利").length).toBeGreaterThanOrEqual(1);
     expect(localStorage.getItem("a-share-review-learning-v1")).toContain("符合计划");
   });
+
+  it("shows missing review data instead of inventing theoretical returns", async () => {
+    localStorage.clear();
+    renderWithSampleProvider(new Date(2026, 4, 22, 15, 10));
+
+    expect(await screen.findByText("复盘学习")).toBeInTheDocument();
+    expect(screen.getAllByText("缺复盘行情").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows pending rule suggestions and lets the user approve one", async () => {
+    localStorage.clear();
+    const user = userEvent.setup();
+    renderWithSampleProvider(new Date(2026, 4, 22, 15, 10));
+
+    expect(await screen.findByText("规则建议")).toBeInTheDocument();
+    const approveButtons = await screen.findAllByRole("button", { name: "确认建议" });
+    await user.click(approveButtons[0]);
+
+    expect(screen.getByText("已确认")).toBeInTheDocument();
+  });
 });
