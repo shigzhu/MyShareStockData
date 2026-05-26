@@ -238,4 +238,25 @@ describe("App", () => {
 
     expect(await screen.findByText(/已删除 1 条推荐/)).toBeInTheDocument();
   });
+
+  it("records a detailed real trade log for a recommended stock", async () => {
+    localStorage.clear();
+    const user = userEvent.setup();
+    renderWithSampleProvider(new Date(2026, 4, 21, 9, 26));
+
+    expect(await screen.findByText("9:25 成功")).toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: /记录交易/ })[0]);
+    await user.clear(screen.getByLabelText("买入价"));
+    await user.type(screen.getByLabelText("买入价"), "200");
+    await user.clear(screen.getByLabelText("卖出价"));
+    await user.type(screen.getByLabelText("卖出价"), "206");
+    await user.clear(screen.getByLabelText("仓位"));
+    await user.type(screen.getByLabelText("仓位"), "30");
+    await user.click(screen.getByLabelText("按计划执行"));
+    await user.type(screen.getByLabelText("交易备注"), "符合计划");
+    await user.click(screen.getByRole("button", { name: "保存交易记录" }));
+
+    expect(screen.getAllByText("真实交易：盈利").length).toBeGreaterThanOrEqual(1);
+    expect(localStorage.getItem("a-share-review-learning-v1")).toContain("符合计划");
+  });
 });

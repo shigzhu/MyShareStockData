@@ -15,10 +15,14 @@ import type {
   RecommendationDeletion,
   RecommendationJobState,
   StrategyResult,
+  TradeExecutionOutcome,
+  TradeLogEntry,
+  TradeReason,
   TradeStage
 } from "./domain/types";
 
 const deleteReasons: DeleteReason[] = ["过热", "不喜欢", "已买过", "风险大", "题材不认可", "其他"];
+const tradeReasons: TradeReason[] = ["按计划执行", "追高", "低吸", "打板", "止损", "止盈", "情绪冲动", "临盘放弃", "未达到买点"];
 const reviewStore = createLocalReviewStore();
 
 interface DailyPlan {
@@ -49,6 +53,37 @@ function recommendationKey(stage: TradeStage, candidate: CandidatePlan) {
   return `${stage}-${candidate.stock.code}`;
 }
 
+function tradeOutcomeLabel(outcome: TradeExecutionOutcome) {
+  switch (outcome) {
+    case "PROFIT":
+      return "盈利";
+    case "LOSS":
+      return "亏损";
+    case "BREAKEVEN":
+      return "持平";
+    case "OPEN":
+      return "持仓中";
+    case "NOT_TRADED":
+      return "未交易";
+  }
+}
+
+function calculateTradeOutcome(buyPrice?: number, sellPrice?: number): TradeExecutionOutcome {
+  if (!buyPrice || !sellPrice) {
+    return buyPrice ? "OPEN" : "NOT_TRADED";
+  }
+
+  if (sellPrice > buyPrice) {
+    return "PROFIT";
+  }
+
+  if (sellPrice < buyPrice) {
+    return "LOSS";
+  }
+
+  return "BREAKEVEN";
+}
+
 function getMonthLabel(tradeDate: string) {
   const [year, month] = tradeDate.split("-");
   return `${year}年${month}月`;
@@ -61,16 +96,106 @@ function getWeekLabel(tradeDate: string) {
   return `第${Math.ceil((mondayBasedOffset + day) / 7)}周`;
 }
 
-function CandidateCard({
+function TradeLogForm({
   candidate,
   stage,
-  onDelete
+  tradeDate,
+  onSave
 }: {
   candidate: CandidatePlan;
   stage: TradeStage;
+  tradeDate: string;
+  onSave: (entry: TradeLogEntry) => void;
+}) {
+  const [buyPrice, setBuyPrice] = useState("");
+  const [sellPrice, setSellPrice] = useState("");
+  const [positionPct, setPositionPct] = useState("");
+  const [selectedReasons, setSelectedReasons] = useState<TradeReason[]>([]);
+  const [note, setNote] = useState("");
+
+  function toggleReason(reason: TradeReason) {
+    setSelectedReasons((current) =>
+      current.includes(reason) ? current.filter((item) => item !== reason) : [...current, reason]
+    );
+  }
+
+  function save() {
+    const numericBuy = buyPrice ? Number(buyPrice) : undefined;
+    const numericSell = sellPrice ? Number(sellPrice) : undefined;
+    const now = localTimestamp(new Date());
+    onSave({
+      id: `${tradeDate}-${stage}-${candidate.stock.code}`,
+      recommendationTradeDate: tradeDate,
+      stage,
+      code: candidate.stock.code,
+      name: candidate.stock.name,
+      bought: Boolean(numericBuy),
+      buyPrice: numericBuy,
+      sellPrice: numericSell,
+      positionPct: positionPct ? Number(positionPct) : undefined,
+      reasons: selectedReasons,
+      note,
+      outcome: calculateTradeOutcome(numericBuy, numericSell),
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  return (
+    <div className="trade-log-form">
+      <label>
+        买入价
+        <input aria-label="买入价" inputMode="decimal" value={buyPrice} onChange={(event) => setBuyPrice(event.target.value)} />
+      </label>
+      <label>
+        卖出价
+        <input aria-label="卖出价" inputMode="decimal" value={sellPrice} onChange={(event) => setSellPrice(event.target.value)} />
+      </label>
+      <label>
+        仓位
+        <input aria-label="仓位" inputMode="decimal" value={positionPct} onChange={(event) => setPositionPct(event.target.value)} />
+      </label>
+      <div className="reason-grid">
+        {tradeReasons.map((reason) => (
+          <label key={reason}>
+            <input
+              aria-label={reason}
+              type="checkbox"
+              checked={selectedReasons.includes(reason)}
+              onChange={() => toggleReason(reason)}
+            />
+            {reason}
+          </label>
+        ))}
+      </div>
+      <label>
+        交易备注
+        <textarea aria-label="交易备注" value={note} onChange={(event) => setNote(event.target.value)} />
+      </label>
+      <button className="primary-action" type="button" onClick={save}>
+        保存交易记录
+      </button>
+    </div>
+  );
+}
+
+function CandidateCard({
+  candidate,
+  stage,
+  tradeDate,
+  tradeLog,
+  onDelete,
+  onSaveTrade
+}: {
+  candidate: CandidatePlan;
+  stage: TradeStage;
+  tradeDate: string;
+  tradeLog?: TradeLogEntry;
   onDelete: (stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  onSaveTrade: (entry: TradeLogEntry) => void;
 }) {
   const [choosingDelete, setChoosingDelete] = useState(false);
+  const [showTradeForm, setShowTradeForm] = useState(false);
   const roleLabel = candidate.role === "PRIMARY" ? "首推" : candidate.role === "CONFIRMED" ? "确认" : "备选";
 
   return (
@@ -102,6 +227,12 @@ function CandidateCard({
           ))}
         </div>
       )}
+
+      <button className="secondary-action" type="button" onClick={() => setShowTradeForm((value) => !value)}>
+        记录交易
+      </button>
+      {tradeLog && <div className="trade-log-summary">真实交易：{tradeOutcomeLabel(tradeLog.outcome)}</div>}
+      {showTradeForm && <TradeLogForm candidate={candidate} stage={stage} tradeDate={tradeDate} onSave={onSaveTrade} />}
 
       <div className="score-row">
         <span>{candidate.theme.name}</span>
@@ -159,12 +290,18 @@ function PrimaryStrip({
   title,
   candidate,
   stage,
-  onDelete
+  tradeDate,
+  tradeLog,
+  onDelete,
+  onSaveTrade
 }: {
   title: string;
   candidate?: CandidatePlan;
   stage: TradeStage;
+  tradeDate: string;
+  tradeLog?: TradeLogEntry;
   onDelete: (stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  onSaveTrade: (entry: TradeLogEntry) => void;
 }) {
   if (!candidate) {
     return null;
@@ -176,7 +313,14 @@ function PrimaryStrip({
         <Trophy size={18} />
         <span>{title}</span>
       </div>
-      <CandidateCard candidate={candidate} stage={stage} onDelete={onDelete} />
+      <CandidateCard
+        candidate={candidate}
+        stage={stage}
+        tradeDate={tradeDate}
+        tradeLog={tradeLog}
+        onDelete={onDelete}
+        onSaveTrade={onSaveTrade}
+      />
     </section>
   );
 }
@@ -186,13 +330,19 @@ function PlanSection({
   result,
   icon,
   hiddenKeys,
-  onDelete
+  tradeDate,
+  getTradeLog,
+  onDelete,
+  onSaveTrade
 }: {
   title: string;
   result: StrategyResult;
   icon: ReactNode;
   hiddenKeys: Set<string>;
+  tradeDate: string;
+  getTradeLog: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan) => TradeLogEntry | undefined;
   onDelete: (stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  onSaveTrade: (entry: TradeLogEntry) => void;
 }) {
   const visibleCandidates = result.candidates.filter((candidate) => !hiddenKeys.has(recommendationKey(result.stage, candidate)));
 
@@ -211,7 +361,10 @@ function PlanSection({
             key={`${result.stage}-${candidate.stock.code}`}
             candidate={candidate}
             stage={result.stage}
+            tradeDate={tradeDate}
+            tradeLog={getTradeLog(tradeDate, result.stage, candidate)}
             onDelete={onDelete}
+            onSaveTrade={onSaveTrade}
           />
         ))}
       </div>
@@ -223,12 +376,18 @@ function ArchivedPlanSection({
   title,
   result,
   hiddenKeys,
-  onDelete
+  tradeDate,
+  getTradeLog,
+  onDelete,
+  onSaveTrade
 }: {
   title: string;
   result?: StrategyResult;
   hiddenKeys: Set<string>;
+  tradeDate: string;
+  getTradeLog: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan) => TradeLogEntry | undefined;
   onDelete: (stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  onSaveTrade: (entry: TradeLogEntry) => void;
 }) {
   if (!result) {
     return null;
@@ -248,7 +407,10 @@ function ArchivedPlanSection({
             key={`archive-${result.stage}-${candidate.stock.code}`}
             candidate={candidate}
             stage={result.stage}
+            tradeDate={tradeDate}
+            tradeLog={getTradeLog(tradeDate, result.stage, candidate)}
             onDelete={onDelete}
+            onSaveTrade={onSaveTrade}
           />
         ))}
       </div>
@@ -270,11 +432,15 @@ function History({
   dailyPlan,
   hiddenKeys,
   onDelete,
+  getTradeLog,
+  onSaveTrade,
   defaultOpen
 }: {
   dailyPlan: DailyPlan;
   hiddenKeys: Set<string>;
   onDelete: (stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  getTradeLog: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan) => TradeLogEntry | undefined;
+  onSaveTrade: (entry: TradeLogEntry) => void;
   defaultOpen: boolean;
 }) {
   return (
@@ -303,13 +469,19 @@ function History({
               title="8:30 准备名单"
               result={dailyPlan.preMarket}
               hiddenKeys={hiddenKeys}
+              tradeDate={dailyPlan.tradeDate}
+              getTradeLog={getTradeLog}
               onDelete={onDelete}
+              onSaveTrade={onSaveTrade}
             />
             <ArchivedPlanSection
               title="9:25 竞价确认"
               result={dailyPlan.auction}
               hiddenKeys={hiddenKeys}
+              tradeDate={dailyPlan.tradeDate}
+              getTradeLog={getTradeLog}
               onDelete={onDelete}
+              onSaveTrade={onSaveTrade}
             />
           </HistoryDetails>
         </HistoryDetails>
@@ -403,6 +575,7 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
   const refreshStateRef = useRef(refreshState);
   const [plansByDate, setPlansByDate] = useState<Record<string, DailyPlan>>(() => reviewStore.loadDailyPlans());
   const [deletions, setDeletions] = useState<RecommendationDeletion[]>(() => reviewStore.loadDeletions());
+  const [tradeLogs, setTradeLogs] = useState<TradeLogEntry[]>(() => reviewStore.loadTradeLogs());
   const phoneDate = formatLocalDate(currentTime);
   const isTradingDay = isAshareTradingDay(phoneDate);
   const currentGeneratedPlan = refreshState.tradeDate === phoneDate ? planFromRefreshState(refreshState) : undefined;
@@ -479,6 +652,12 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
   const visiblePrePrimary = preMarket?.candidates.find((candidate) => !hiddenKeys.has(recommendationKey(preMarket.stage, candidate)));
   const visibleAuctionPrimary = auction?.candidates.find((candidate) => !hiddenKeys.has(recommendationKey(auction.stage, candidate)));
 
+  function getTradeLog(tradeDate: string, stage: TradeStage, candidate: CandidatePlan) {
+    return tradeLogs.find(
+      (entry) => entry.recommendationTradeDate === tradeDate && entry.stage === stage && entry.code === candidate.stock.code
+    );
+  }
+
   function handleDelete(stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) {
     const deletion: RecommendationDeletion = {
       code: candidate.stock.code,
@@ -491,6 +670,11 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
     };
     reviewStore.saveDeletion(deletion);
     setDeletions(reviewStore.loadDeletions());
+  }
+
+  function handleSaveTrade(entry: TradeLogEntry) {
+    reviewStore.upsertTradeLog(entry);
+    setTradeLogs(reviewStore.loadTradeLogs());
   }
 
   return (
@@ -531,8 +715,24 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
       {showTodayTradingPlan && (
         <section className="daily-primary">
           <h2>今日首推</h2>
-          <PrimaryStrip title="8:30 首推" candidate={visiblePrePrimary} stage="PREMARKET_0830" onDelete={handleDelete} />
-          <PrimaryStrip title="9:25 首推" candidate={visibleAuctionPrimary} stage="AUCTION_0925" onDelete={handleDelete} />
+          <PrimaryStrip
+            title="8:30 首推"
+            candidate={visiblePrePrimary}
+            stage="PREMARKET_0830"
+            tradeDate={phoneDate}
+            tradeLog={visiblePrePrimary ? getTradeLog(phoneDate, "PREMARKET_0830", visiblePrePrimary) : undefined}
+            onDelete={handleDelete}
+            onSaveTrade={handleSaveTrade}
+          />
+          <PrimaryStrip
+            title="9:25 首推"
+            candidate={visibleAuctionPrimary}
+            stage="AUCTION_0925"
+            tradeDate={phoneDate}
+            tradeLog={visibleAuctionPrimary ? getTradeLog(phoneDate, "AUCTION_0925", visibleAuctionPrimary) : undefined}
+            onDelete={handleDelete}
+            onSaveTrade={handleSaveTrade}
+          />
         </section>
       )}
 
@@ -548,6 +748,8 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
           dailyPlan={dailyPlan}
           hiddenKeys={hiddenKeys}
           onDelete={handleDelete}
+          getTradeLog={getTradeLog}
+          onSaveTrade={handleSaveTrade}
           defaultOpen={dailyPlan.tradeDate === phoneDate && showTodayTradingPlan}
         />
       ))}
@@ -559,7 +761,10 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
             result={preMarket}
             icon={<Clock size={22} />}
             hiddenKeys={hiddenKeys}
+            tradeDate={phoneDate}
+            getTradeLog={getTradeLog}
             onDelete={handleDelete}
+            onSaveTrade={handleSaveTrade}
           />
           {auction && (
             <PlanSection
@@ -567,7 +772,10 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
               result={auction}
               icon={<Activity size={22} />}
               hiddenKeys={hiddenKeys}
+              tradeDate={phoneDate}
+              getTradeLog={getTradeLog}
               onDelete={handleDelete}
+              onSaveTrade={handleSaveTrade}
             />
           )}
         </>

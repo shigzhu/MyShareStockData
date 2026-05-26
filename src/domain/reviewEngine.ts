@@ -128,11 +128,10 @@ export function buildCandidateReview(
   updatedAt: string
 ): CandidateReview {
   const dataMatches = marketData.code === candidate.stock.code && marketData.recommendationTradeDate === result.tradeDate;
-  const hasReturnData =
-    dataMatches && marketData.buyPrice !== undefined && marketData.closePrice !== undefined && marketData.buyPrice > 0;
-  const systemReturnPct = hasReturnData
-    ? roundPct(((marketData.closePrice - marketData.buyPrice) / marketData.buyPrice) * 100)
-    : undefined;
+  const buyPrice = marketData.buyPrice;
+  const closePrice = marketData.closePrice;
+  const hasReturnData = dataMatches && buyPrice !== undefined && closePrice !== undefined && buyPrice > 0;
+  const systemReturnPct = hasReturnData ? roundPct(((closePrice - buyPrice) / buyPrice) * 100) : undefined;
   const outcome = outcomeFromReturn(systemReturnPct);
   const idSeed = `${result.tradeDate}-${result.stage}-${candidate.stock.code}`;
 
