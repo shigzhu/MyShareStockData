@@ -87,6 +87,31 @@ describe("localReviewStore", () => {
     expect(store.loadRuleSuggestions()[0].status).toBe("APPROVED");
   });
 
+  it("preserves an existing rule suggestion decision when the same draft is regenerated", () => {
+    const store = createLocalReviewStore("test-stock-review");
+    const suggestion: RuleSuggestion = {
+      id: "rule-1",
+      createdAt: "2026-05-22T15:10:00",
+      recommendationTradeDate: "2026-05-21",
+      code: "300750",
+      name: "宁德时代",
+      type: "FILTER_TIGHTEN",
+      title: "收紧过滤",
+      detail: "提高竞价承接过滤要求。",
+      evidence: ["失败样本"],
+      marketStage: "震荡期",
+      status: "PENDING"
+    };
+
+    store.upsertRuleSuggestions([suggestion]);
+    store.updateRuleSuggestionStatus("rule-1", "APPROVED");
+    store.upsertRuleSuggestions([{ ...suggestion, detail: "自动重新生成的建议。", status: "PENDING" }]);
+
+    const [saved] = store.loadRuleSuggestions();
+    expect(saved.status).toBe("APPROVED");
+    expect(saved.detail).toBe("自动重新生成的建议。");
+  });
+
   it("exports trade logs as CSV with Chinese headers", () => {
     const store = createLocalReviewStore("test-stock-review");
 

@@ -128,10 +128,15 @@ export function createLocalReviewStore(storageKey = "a-share-review-learning-v1"
 
       update((state) => {
         const incomingById = new Map(suggestions.map((item) => [item.id, item]));
+        const existingById = new Map(state.ruleSuggestions.map((item) => [item.id, item]));
         const preserved = state.ruleSuggestions.filter((item) => !incomingById.has(item.id));
+        const mergedIncoming = suggestions.map((item) => {
+          const existing = existingById.get(item.id);
+          return existing ? { ...item, status: existing.status } : item;
+        });
         return {
           ...state,
-          ruleSuggestions: [...preserved, ...suggestions].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+          ruleSuggestions: [...preserved, ...mergedIncoming].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         };
       });
     },
