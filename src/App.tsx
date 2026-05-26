@@ -13,7 +13,7 @@ import {
   getPrimaryCandidate,
   summarizeReviewOutcome
 } from "./domain/reviewEngine";
-import { formatLocalDate, isAshareTradingDay } from "./domain/tradingCalendar";
+import { formatBeijingDate, formatBeijingDateTime, formatLocalDate, isAshareTradingDay } from "./domain/tradingCalendar";
 import type {
   CandidatePlan,
   DataRefreshStatus,
@@ -681,22 +681,19 @@ function sortedPlans(plansByDate: Record<string, DailyPlan>) {
 }
 
 function localTimestamp(date: Date) {
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
-  return `${formatLocalDate(date)}T${hours}:${minutes}:${seconds}`;
+  return formatBeijingDateTime(date);
 }
 
 export default function App({ today, dataProvider = defaultDataProvider }: { today?: Date; dataProvider?: DataProvider }) {
   const [currentTime, setCurrentTime] = useState(() => today ?? new Date());
-  const [refreshState, setRefreshState] = useState(() => initialRefreshState(formatLocalDate(today ?? new Date())));
+  const [refreshState, setRefreshState] = useState(() => initialRefreshState(formatBeijingDate(today ?? new Date())));
   const refreshStateRef = useRef(refreshState);
   const [plansByDate, setPlansByDate] = useState<Record<string, DailyPlan>>(() => reviewStore.loadDailyPlans());
   const [deletions, setDeletions] = useState<RecommendationDeletion[]>(() => reviewStore.loadDeletions());
   const [tradeLogs, setTradeLogs] = useState<TradeLogEntry[]>(() => reviewStore.loadTradeLogs());
   const [ruleSuggestions, setRuleSuggestions] = useState<RuleSuggestion[]>(() => reviewStore.loadRuleSuggestions());
   const [csvExport, setCsvExport] = useState("");
-  const phoneDate = formatLocalDate(currentTime);
+  const phoneDate = formatBeijingDate(currentTime);
   const isTradingDay = isAshareTradingDay(phoneDate);
   const currentGeneratedPlan = refreshState.tradeDate === phoneDate ? planFromRefreshState(refreshState) : undefined;
   const currentPlan = currentGeneratedPlan ?? plansByDate[phoneDate];
@@ -715,7 +712,7 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
       const nextState = await runIntradayRefresh({
         now: time,
         provider: dataProvider,
-        previousState: refreshStateRef.current.tradeDate === formatLocalDate(time) ? refreshStateRef.current : undefined
+        previousState: refreshStateRef.current.tradeDate === formatBeijingDate(time) ? refreshStateRef.current : undefined
       });
       refreshStateRef.current = nextState;
       setRefreshState(nextState);

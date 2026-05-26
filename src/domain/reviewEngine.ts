@@ -1,4 +1,4 @@
-import { formatLocalDate, isAshareTradingDay } from "./tradingCalendar";
+import { formatBeijingDate, getBeijingClock, isAshareTradingDay } from "./tradingCalendar";
 import type {
   CandidatePlan,
   CandidateReview,
@@ -20,14 +20,15 @@ function roundPct(value: number) {
 
 export function getHomeFocus(
   now: Date,
-  tradingDay = isAshareTradingDay(formatLocalDate(now)),
+  tradingDay = isAshareTradingDay(formatBeijingDate(now)),
   options: HomeFocusOptions = {}
 ): HomeFocus {
   if (!tradingDay) {
     return "CLOSED";
   }
 
-  const minutes = now.getHours() * 60 + now.getMinutes();
+  const clock = getBeijingClock(now);
+  const minutes = clock.hours * 60 + clock.minutes;
 
   if (minutes < 9 * 60 + 30) {
     return options.preferFollowUpBeforeOpen === true ? "THIRD_DAY_FOLLOW_UP" : "TODAY_RECOMMENDATION";

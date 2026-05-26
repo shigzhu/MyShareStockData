@@ -5,7 +5,7 @@ import { evaluateMarketGate } from "./marketGate";
 import { scoreQuantFactors } from "./quantFactors";
 import { getRiskRejections } from "./riskFilters";
 import { defaultThresholds } from "./thresholds";
-import { selectTradableThemes } from "./themeSelection";
+import { scoreTheme, selectTradableThemes } from "./themeSelection";
 import type {
   CandidatePlan,
   DiscussionHeatScore,
@@ -84,6 +84,75 @@ function buildCandidatePlan(
   };
 }
 
+function hasHardBlock(stock: StockMetrics, thresholds: StrategyThresholds): boolean {
+  return (
+    stock.isSt ||
+    stock.isSuspended ||
+    stock.severeFinancialRisk ||
+    stock.majorNegativeEvent ||
+    stock.listingDays < thresholds.stock.minListingDays
+  );
+}
+
+function unique(values: string[]) {
+  return [...new Set(values)];
+}
+
+function buildObservationCandidate(
+  stock: StockMetrics,
+  theme: ThemeMetrics,
+  themeScore: number,
+  thresholds: StrategyThresholds
+): CandidatePlan {
+  const riskReasons = getRiskRejections(stock, thresholds).map((rejection) => rejection.reason);
+  const heat = scoreDiscussionHeat(stock);
+  const quant = scoreQuantFactors(stock);
+  const hotMoney = scoreHotMoney(stock, "PREMARKET_0830");
+  const candidate = buildCandidatePlan(stock, theme, scoreTradingLogic(stock, themeScore), heat, quant, hotMoney);
+  const failedFilters = [
+    ...riskReasons,
+    heat.reject ? "讨论热度过热" : undefined,
+    quant.passed ? undefined : quant.missingRequiredData.length > 0 ? "量化关键数据缺失" : "量化硬过滤失败",
+    hotMoney.overheated ? "游资过热或接力末端" : undefined
+  ].filter((reason): reason is string => Boolean(reason));
+
+  return {
+    ...candidate,
+    role: "PRIMARY",
+    reasons: unique(["市场合格但严格过滤后无候选，保底保留一只首推观察票", ...candidate.reasons]),
+    risks: unique([
+      "保底观察：风险过滤未完全通过",
+      ...failedFilters.map((reason) => `风险过滤未完全通过：${reason}`),
+      ...candidate.risks
+    ]),
+    entryPlan: "仅作8:30首推观察，9:25必须出现竞价明显放量和价格确认，否则保持空仓",
+    noBuyCondition: "竞价无明显放量、风险项未改善、题材龙头走弱或个股高开过热时不买"
+  };
+}
+
+function buildFallbackObservationCandidates(
+  input: TradingDayInput,
+  thresholds: StrategyThresholds,
+  selectedThemes: Array<{ theme: ThemeMetrics; score: number }>
+): CandidatePlan[] {
+  const rankedThemes =
+    selectedThemes.length > 0
+      ? selectedThemes
+      : [...input.themes]
+          .map((theme) => ({ theme, score: scoreTheme(theme) }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, thresholds.theme.maxThemes);
+
+  return rankedThemes
+    .flatMap(({ theme, score }) =>
+      theme.stocks
+        .filter((stock) => !hasHardBlock(stock, thresholds))
+        .map((stock) => buildObservationCandidate(stock, theme, score, thresholds))
+    )
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 1);
+}
+
 export function generatePreMarketPlan(
   input: TradingDayInput,
   thresholds: StrategyThresholds = defaultThresholds
@@ -143,14 +212,19 @@ export function generatePreMarketPlan(
     }
   }
 
-  const ranked = candidates.sort((a, b) => b.score - a.score).slice(0, 5);
+  const ranked =
+    candidates.length > 0
+      ? candidates.sort((a, b) => b.score - a.score).slice(0, 5)
+      : buildFallbackObservationCandidates(input, thresholds, themeSelection.selected);
   const primaryIndex = ranked.findIndex((candidate) => candidate.hotMoney.eligibleForPrimary);
 
-  if (primaryIndex > 0) {
-    const [primary] = ranked.splice(primaryIndex, 1);
-    ranked.unshift({ ...primary, role: "PRIMARY" });
-  } else if (primaryIndex === 0) {
-    ranked[0] = { ...ranked[0], role: "PRIMARY" };
+  if (!ranked[0]?.risks.some((risk) => risk.includes("风险过滤未完全通过"))) {
+    if (primaryIndex > 0) {
+      const [primary] = ranked.splice(primaryIndex, 1);
+      ranked.unshift({ ...primary, role: "PRIMARY" });
+    } else if (primaryIndex === 0) {
+      ranked[0] = { ...ranked[0], role: "PRIMARY" };
+    }
   }
   const hasPrimary = ranked[0]?.role === "PRIMARY";
 
@@ -161,6 +235,8 @@ export function generatePreMarketPlan(
     summary:
       ranked.length === 0
         ? "市场合格，但没有通过风险过滤的候选"
+        : ranked[0].risks.some((risk) => risk.includes("风险过滤未完全通过"))
+          ? "市场合格但严格过滤后无候选，生成8:30保底首推观察票，9:25未确认则空仓"
         : hasPrimary
           ? "市场赚钱效应合格，生成8:30准备名单"
           : "市场合格但无清晰游资首推，仅保留备选观察",

@@ -16,7 +16,7 @@ function resultWithPrimary(): StrategyResult {
 }
 
 describe("reviewEngine", () => {
-  it("uses phone local time to choose the home focus", () => {
+  it("uses Beijing time to choose the home focus", () => {
     expect(getHomeFocus(new Date(2026, 4, 25, 8, 31), true)).toBe("TODAY_RECOMMENDATION");
     expect(getHomeFocus(new Date(2026, 4, 25, 10, 15), true)).toBe("INTRADAY_REVIEW");
     expect(getHomeFocus(new Date(2026, 4, 25, 15, 10), true)).toBe("CLOSE_REVIEW");
@@ -25,6 +25,11 @@ describe("reviewEngine", () => {
       "THIRD_DAY_FOLLOW_UP"
     );
     expect(getHomeFocus(new Date(2026, 4, 24, 10, 0), false)).toBe("CLOSED");
+  });
+
+  it("keeps the home focus on the Beijing trading clock when the runtime timezone differs", () => {
+    expect(getHomeFocus(new Date("2026-05-25T00:35:00.000Z"), true)).toBe("TODAY_RECOMMENDATION");
+    expect(getHomeFocus(new Date("2026-05-25T01:35:00.000Z"), true)).toBe("INTRADAY_REVIEW");
   });
 
   it("creates stable recommendation snapshot ids and preserves the result", () => {

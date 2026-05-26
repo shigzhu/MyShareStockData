@@ -9,12 +9,12 @@ interface RemoteFeed {
 
 interface RemoteJsonDataProviderOptions {
   baseUrl: string;
-  fallbackProvider: DataProvider;
   fetcher?: typeof fetch;
+  cacheKey?: () => string;
 }
 
-function joinFeedUrl(baseUrl: string) {
-  return `${baseUrl.replace(/\/$/, "")}/data/today.json`;
+function joinFeedUrl(baseUrl: string, path: string, cacheKey: string) {
+  return `${baseUrl.replace(/\/$/, "")}${path}?v=${encodeURIComponent(cacheKey)}`;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -29,8 +29,8 @@ function isTradingDayInput(value: unknown, tradeDate: string): value is TradingD
   return value.tradeDate === tradeDate && isObject(value.marketMood) && Array.isArray(value.themes);
 }
 
-async function fetchFeed(baseUrl: string, fetcher: typeof fetch): Promise<RemoteFeed> {
-  const response = await fetcher(joinFeedUrl(baseUrl));
+async function fetchFeed(baseUrl: string, fetcher: typeof fetch, path: string, cacheKey: string): Promise<RemoteFeed> {
+  const response = await fetcher(joinFeedUrl(baseUrl, path, cacheKey), { cache: "no-store" });
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -66,26 +66,67 @@ function inputFromFeed(
   };
 }
 
+async function fetchInputFromRemote(
+  baseUrl: string,
+  fetcher: typeof fetch,
+  tradeDate: string,
+  key: "preMarketInput" | "auctionInput",
+  missingMessage: string,
+  cacheKey: string
+): Promise<DataProviderResult<TradingDayInput>> {
+  const todayFeed = await fetchFeed(baseUrl, fetcher, "/data/today.json", cacheKey);
+  const todayResult = inputFromFeed(todayFeed, tradeDate, key, missingMessage);
+
+  if (todayResult.status === "SUCCESS") {
+    return todayResult;
+  }
+
+  if (todayFeed.tradeDate !== tradeDate) {
+    const historyFeed = await fetchFeed(baseUrl, fetcher, `/data/history/${tradeDate}.json`, cacheKey);
+    return inputFromFeed(historyFeed, tradeDate, key, missingMessage);
+  }
+
+  return todayResult;
+}
+
 export function createRemoteJsonDataProvider({
   baseUrl,
-  fallbackProvider,
-  fetcher = fetch
+  fetcher = fetch,
+  cacheKey = () => String(Date.now())
 }: RemoteJsonDataProviderOptions): DataProvider {
   return {
     async fetchPreMarketInput(tradeDate) {
       try {
-        const feed = await fetchFeed(baseUrl, fetcher);
-        return inputFromFeed(feed, tradeDate, "preMarketInput", "8:30关键数据缺失");
-      } catch {
-        return fallbackProvider.fetchPreMarketInput(tradeDate);
+        return await fetchInputFromRemote(
+          baseUrl,
+          fetcher,
+          tradeDate,
+          "preMarketInput",
+          "8:30关键数据缺失",
+          cacheKey()
+        );
+      } catch (error) {
+        return {
+          status: "FAILED",
+          message: `远程数据加载失败：${error instanceof Error ? error.message : "未知错误"}`
+        };
       }
     },
     async fetchAuctionInput(tradeDate, preMarketResult: StrategyResult) {
       try {
-        const feed = await fetchFeed(baseUrl, fetcher);
-        return inputFromFeed(feed, tradeDate, "auctionInput", "9:25集合竞价关键数据缺失");
-      } catch {
-        return fallbackProvider.fetchAuctionInput(tradeDate, preMarketResult);
+        return await fetchInputFromRemote(
+          baseUrl,
+          fetcher,
+          tradeDate,
+          "auctionInput",
+          "9:25集合竞价关键数据缺失",
+          cacheKey()
+        );
+      } catch (error) {
+        return {
+          status: "FAILED",
+          message: `远程数据加载失败：${error instanceof Error ? error.message : "未知错误"}`
+        };
       }
     }
   };

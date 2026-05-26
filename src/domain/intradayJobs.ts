@@ -1,7 +1,13 @@
 import type { DataProvider, DataProviderResult } from "./dataProvider";
 import { generateAuctionPlan, generatePreMarketPlan } from "./strategyEngine";
-import { formatLocalDate, isAshareTradingDay } from "./tradingCalendar";
-import type { IntradayRefreshState, RecommendationJobState, StrategyResult, TradeStage, TradingDayInput } from "./types";
+import { formatBeijingDate, formatBeijingDateTime, getBeijingClock, isAshareTradingDay } from "./tradingCalendar";
+import type {
+  IntradayRefreshState,
+  RecommendationJobState,
+  StrategyResult,
+  TradeStage,
+  TradingDayInput
+} from "./types";
 
 const PRE_MARKET_HOUR = 8;
 const PRE_MARKET_MINUTE = 30;
@@ -15,7 +21,8 @@ interface RunIntradayRefreshOptions {
 }
 
 function isAtOrAfter(date: Date, hour: number, minute: number) {
-  return date.getHours() > hour || (date.getHours() === hour && date.getMinutes() >= minute);
+  const clock = getBeijingClock(date);
+  return clock.hours > hour || (clock.hours === hour && clock.minutes >= minute);
 }
 
 function pendingJob(stage: TradeStage, tradeDate: string, message: string): RecommendationJobState {
@@ -50,6 +57,18 @@ function successfulJob(stage: TradeStage, tradeDate: string, result: StrategyRes
     message: noCandidates ? `规则过滤后不推荐：${result.summary}` : result.summary,
     result,
     updatedAt
+  };
+}
+
+function emptyPlan(stage: TradeStage, tradeDate: string, summary: string): StrategyResult {
+  return {
+    stage,
+    tradeDate,
+    marketStatus: "TRADABLE",
+    summary,
+    candidates: [],
+    rejections: [{ reason: summary }],
+    dataCompleteness: "MISSING"
   };
 }
 
@@ -92,11 +111,14 @@ async function runAuctionJob(
   }
 
   if (!preMarket.result) {
+    const result = emptyPlan("AUCTION_0925", tradeDate, "8:30准备名单不可用，9:25不追票，保持空仓");
     return {
       stage: "AUCTION_0925",
       tradeDate,
-      status: "FAILED",
-      message: "8:30准备名单未生成，9:25无法确认"
+      status: "NOT_RECOMMENDED",
+      message: "8:30准备名单不可用，9:25不追票，保持空仓",
+      result,
+      updatedAt
     };
   }
 
@@ -119,8 +141,8 @@ export async function runIntradayRefresh({
   provider,
   previousState
 }: RunIntradayRefreshOptions): Promise<IntradayRefreshState> {
-  const tradeDate = formatLocalDate(now);
-  const updatedAt = now.toISOString();
+  const tradeDate = formatBeijingDate(now);
+  const updatedAt = formatBeijingDateTime(now);
   let preMarket = pendingJob("PREMARKET_0830", tradeDate, "等待8:30生成准备名单");
   let auction = pendingJob("AUCTION_0925", tradeDate, "等待9:25集合竞价确认");
 

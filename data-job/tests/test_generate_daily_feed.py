@@ -12,7 +12,63 @@ FIXTURE = ROOT / "data-job" / "fixtures" / "sample_trading_day.json"
 
 
 class GenerateDailyFeedTest(unittest.TestCase):
-    def test_writes_today_and_history_feed_files(self):
+    def test_defaults_to_current_beijing_calendar_date(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--now-utc",
+                    "2026-05-24T16:30:00Z",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(today["tradeDate"], "2026-05-25")
+        self.assertEqual(today["generatedAt"], "2026-05-25")
+        self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-25")
+
+    def test_beijing_calendar_date_moves_with_current_day(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--now-utc",
+                    "2026-05-26T16:30:00Z",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(today["tradeDate"], "2026-05-27")
+        self.assertEqual(today["generatedAt"], "2026-05-27")
+        self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-27")
+
+    def test_writes_today_and_history_feed_files_from_fixture_source(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir) / "data"
 
@@ -22,6 +78,10 @@ class GenerateDailyFeedTest(unittest.TestCase):
                     str(SCRIPT),
                     "--trade-date",
                     "2026-05-25",
+                    "--stage",
+                    "auction",
+                    "--source",
+                    "fixture",
                     "--fixture",
                     str(FIXTURE),
                     "--output-dir",
@@ -40,6 +100,201 @@ class GenerateDailyFeedTest(unittest.TestCase):
         self.assertEqual(today["source"]["mode"], "SAMPLE_BOOTSTRAP")
         self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-25")
         self.assertEqual(today["auctionInput"]["tradeDate"], "2026-05-25")
+
+    def test_marks_fixture_fallback_when_real_source_fails(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "eastmoney",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                    "--eastmoney-theme-count",
+                    "0",
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(today["source"]["mode"], "SAMPLE_FALLBACK")
+        self.assertIn("fallbackReason", today["source"])
+        self.assertEqual(today["preMarketInput"]["dataCompleteness"], "MISSING")
+
+    def test_auction_failure_preserves_existing_premarket_input(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "auction",
+                    "--source",
+                    "eastmoney",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                    "--eastmoney-theme-count",
+                    "0",
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(today["source"]["mode"], "REAL_PARTIAL_AUCTION_MISSING")
+        self.assertEqual(today["preMarketInput"]["dataCompleteness"], "FULL")
+        self.assertNotIn("auctionInput", today)
+        self.assertIn("auctionFailureReason", today["source"])
+
+    def test_late_auction_run_preserves_existing_auction_input(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "auction",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "auction",
+                    "--source",
+                    "eastmoney",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                    "--now-utc",
+                    "2026-05-25T07:00:00Z",
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(today["auctionInput"]["dataCompleteness"], "MANUAL_AUCTION")
+        self.assertEqual(today["source"]["mode"], "REAL_PARTIAL_AUCTION_PRESERVED")
+
+    def test_premarket_stage_does_not_write_auction_input(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertIn("preMarketInput", today)
+        self.assertNotIn("auctionInput", today)
+
+    def test_premarket_stage_preserves_existing_auction_input(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "auction",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertIn("auctionInput", today)
+        self.assertEqual(today["auctionInput"]["dataCompleteness"], "MANUAL_AUCTION")
 
 
 if __name__ == "__main__":

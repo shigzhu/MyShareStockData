@@ -2,6 +2,23 @@ name: Daily A-share stock data
 
 on:
   workflow_dispatch:
+    inputs:
+      stage:
+        description: "Which feed stage to generate"
+        required: true
+        default: "auction"
+        type: choice
+        options:
+          - premarket
+          - auction
+      source:
+        description: "Data source"
+        required: true
+        default: "eastmoney"
+        type: choice
+        options:
+          - eastmoney
+          - fixture
   schedule:
     - cron: "30 0 * * 1-5"
     - cron: "25 1 * * 1-5"
@@ -22,7 +39,20 @@ jobs:
           python-version: "3.11"
 
       - name: Generate feed
-        run: python data-job/generate_daily_feed.py --output-dir data
+        run: |
+          STAGE="${{ github.event.inputs.stage }}"
+          SOURCE="${{ github.event.inputs.source }}"
+          if [ -z "$STAGE" ]; then
+            if [ "${{ github.event.schedule }}" = "30 0 * * 1-5" ]; then
+              STAGE="premarket"
+            else
+              STAGE="auction"
+            fi
+          fi
+          if [ -z "$SOURCE" ]; then
+            SOURCE="eastmoney"
+          fi
+          python data-job/generate_daily_feed.py --stage "$STAGE" --source "$SOURCE" --output-dir data
 
       - name: Commit feed
         run: |

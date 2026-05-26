@@ -140,6 +140,26 @@ describe("generatePreMarketPlan", () => {
     expect(result.candidates.some((candidate) => candidate.stock.code === "300750")).toBe(false);
     expect(result.rejections.some((rejection) => rejection.reason.includes("高位舆情过热"))).toBe(true);
   });
+
+  it("keeps at least one 8:30 primary observation candidate when the market is tradable but strict filters remove all stocks", () => {
+    const result = generatePreMarketPlan({
+      ...sampleTradingDay,
+      themes: sampleTradingDay.themes.map((theme) => ({
+        ...theme,
+        stocks: theme.stocks.map((stock) => ({
+          ...stock,
+          turnoverAmount: 1_000_000,
+          turnoverRatePct: 0.1
+        }))
+      }))
+    });
+
+    expect(result.marketStatus).toBe("TRADABLE");
+    expect(result.candidates.length).toBeGreaterThanOrEqual(1);
+    expect(result.candidates[0].role).toBe("PRIMARY");
+    expect(result.summary).toContain("保底");
+    expect(result.candidates[0].risks.join(" ")).toContain("风险过滤未完全通过");
+  });
 });
 
 describe("generateAuctionPlan", () => {

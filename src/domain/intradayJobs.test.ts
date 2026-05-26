@@ -61,6 +61,35 @@ describe("runIntradayRefresh", () => {
     expect(state.auction.result?.stage).toBe("AUCTION_0925");
   });
 
+  it("records update timestamps in the phone local timezone", async () => {
+    const state = await runIntradayRefresh({
+      now: new Date(2026, 4, 25, 9, 29, 35),
+      provider: providerWith({ status: "SUCCESS", input: sampleTradingDay })
+    });
+
+    expect(state.preMarket.updatedAt).toBe("2026-05-25T09:29:35");
+    expect(state.auction.updatedAt).toBe("2026-05-25T09:29:35");
+  });
+
+  it("uses the current Beijing calendar date for the requested trading day", async () => {
+    const calls: string[] = [];
+    const provider: DataProvider = {
+      fetchPreMarketInput: async (tradeDate) => {
+        calls.push(tradeDate);
+        return { status: "SUCCESS", input: { ...sampleTradingDay, tradeDate } };
+      },
+      fetchAuctionInput: async () => ({ status: "SUCCESS", input: sampleTradingDay })
+    };
+
+    const state = await runIntradayRefresh({
+      now: new Date("2026-05-25T00:35:00.000Z"),
+      provider
+    });
+
+    expect(state.tradeDate).toBe("2026-05-25");
+    expect(calls[0]).toBe("2026-05-25");
+  });
+
   it("marks provider failures as failed data status", async () => {
     const state = await runIntradayRefresh({
       now: new Date(2026, 4, 21, 8, 35),
@@ -80,6 +109,18 @@ describe("runIntradayRefresh", () => {
 
     expect(state.preMarket.status).toBe("MISSING_REQUIRED_DATA");
     expect(state.preMarket.message).toBe("缺少量化字段");
+  });
+
+  it("keeps 9:25 as not recommended instead of failed when the 8:30 pool is unavailable", async () => {
+    const state = await runIntradayRefresh({
+      now: new Date(2026, 4, 21, 9, 35),
+      provider: providerWith({ status: "MISSING_REQUIRED_DATA", message: "当天8:30数据尚未发布" })
+    });
+
+    expect(state.preMarket.status).toBe("MISSING_REQUIRED_DATA");
+    expect(state.auction.status).toBe("NOT_RECOMMENDED");
+    expect(state.auction.message).toContain("保持空仓");
+    expect(state.auction.result?.candidates).toHaveLength(0);
   });
 
   it("marks a successful run with no candidates as not recommended", async () => {

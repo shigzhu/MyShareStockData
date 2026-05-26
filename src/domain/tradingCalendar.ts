@@ -8,11 +8,54 @@ const closedRanges2026: Array<[string, string]> = [
   ["2026-10-01", "2026-10-07"]
 ];
 
+export interface BeijingClock {
+  date: string;
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
+
 export function formatLocalDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+export function getBeijingClock(date: Date): BeijingClock {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).formatToParts(date);
+  const valueOf = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
+  const year = valueOf("year");
+  const month = valueOf("month");
+  const day = valueOf("day");
+
+  return {
+    date: `${year}-${month}-${day}`,
+    hours: Number(valueOf("hour")),
+    minutes: Number(valueOf("minute")),
+    seconds: Number(valueOf("second"))
+  };
+}
+
+export function formatBeijingDate(date: Date): string {
+  return getBeijingClock(date).date;
+}
+
+export function formatBeijingDateTime(date: Date): string {
+  const clock = getBeijingClock(date);
+  const hours = String(clock.hours).padStart(2, "0");
+  const minutes = String(clock.minutes).padStart(2, "0");
+  const seconds = String(clock.seconds).padStart(2, "0");
+  return `${clock.date}T${hours}:${minutes}:${seconds}`;
 }
 
 function isInClosedRange(date: string) {

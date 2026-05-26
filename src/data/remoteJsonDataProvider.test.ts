@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { sampleTradingDay } from "./sampleTradingDay";
-import { sampleDataProvider } from "./sampleDataProvider";
 import { createRemoteJsonDataProvider } from "./remoteJsonDataProvider";
 import type { DataProvider } from "../domain/dataProvider";
 
@@ -12,15 +11,35 @@ function jsonResponse(body: unknown, ok = true): Response {
   } as Response;
 }
 
-function createProviderFromFeed(feed: unknown, fallbackProvider: DataProvider = sampleDataProvider) {
+function createProviderFromFeed(feed: unknown) {
   return createRemoteJsonDataProvider({
     baseUrl: "https://example.test/feed",
-    fallbackProvider,
+    cacheKey: () => "test",
     fetcher: async (url) => {
-      expect(url).toBe("https://example.test/feed/data/today.json");
+      expect(url).toBe("https://example.test/feed/data/today.json?v=test");
       return jsonResponse(feed);
     }
   });
+}
+
+function createProviderFromFeeds(feeds: Record<string, unknown>) {
+  const urls: string[] = [];
+  const provider = createRemoteJsonDataProvider({
+    baseUrl: "https://example.test/feed",
+    cacheKey: () => "test",
+    fetcher: async (url) => {
+      const requestUrl = String(url);
+      urls.push(requestUrl);
+      const urlWithoutCache = requestUrl.split("?")[0];
+      const feed = feeds[urlWithoutCache];
+      if (!feed) {
+        return jsonResponse({ message: "not found" }, false);
+      }
+      return jsonResponse(feed);
+    }
+  });
+
+  return { provider, urls };
 }
 
 describe("createRemoteJsonDataProvider", () => {
@@ -97,25 +116,36 @@ describe("createRemoteJsonDataProvider", () => {
     expect(result.message).toContain("9:25");
   });
 
-  it("rejects a feed date that does not match the requested trade date", async () => {
-    const provider = createProviderFromFeed({
-      tradeDate: "2026-05-24",
-      preMarketInput: {
-        ...sampleTradingDay,
-        tradeDate: "2026-05-24"
+  it("loads the requested history file when today.json is still cached on yesterday", async () => {
+    const { provider, urls } = createProviderFromFeeds({
+      "https://example.test/feed/data/today.json": {
+        tradeDate: "2026-05-25",
+        preMarketInput: {
+          ...sampleTradingDay,
+          tradeDate: "2026-05-25"
+        }
+      },
+      "https://example.test/feed/data/history/2026-05-26.json": {
+        tradeDate: "2026-05-26",
+        preMarketInput: {
+          ...sampleTradingDay,
+          tradeDate: "2026-05-26",
+          dataCompleteness: "FULL"
+        }
       }
     });
 
-    const result = await provider.fetchPreMarketInput("2026-05-25");
+    const result = await provider.fetchPreMarketInput("2026-05-26");
 
-    expect(result.status).toBe("MISSING_REQUIRED_DATA");
-    expect(result.message).toContain("日期不匹配");
+    expect(urls[0]).toContain("/data/today.json?");
+    expect(urls[1]).toContain("/data/history/2026-05-26.json?");
+    expect(result.status).toBe("SUCCESS");
+    expect(result.status === "SUCCESS" ? result.input.tradeDate : "").toBe("2026-05-26");
   });
 
-  it("falls back to the sample provider when remote fetch fails", async () => {
+  it("reports failure instead of falling back to sample data when remote fetch fails", async () => {
     const provider = createRemoteJsonDataProvider({
       baseUrl: "https://example.test/feed",
-      fallbackProvider: sampleDataProvider,
       fetcher: async () => {
         throw new Error("network down");
       }
@@ -123,7 +153,7 @@ describe("createRemoteJsonDataProvider", () => {
 
     const result = await provider.fetchPreMarketInput("2026-05-25");
 
-    expect(result.status).toBe("SUCCESS");
-    expect(result.status === "SUCCESS" ? result.input.tradeDate : "").toBe("2026-05-25");
+    expect(result.status).toBe("FAILED");
+    expect(result.message).toContain("远程数据加载失败");
   });
 });
