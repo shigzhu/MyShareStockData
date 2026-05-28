@@ -6,7 +6,7 @@ import type { DataProvider } from "../domain/dataProvider";
 function jsonResponse(body: unknown, ok = true): Response {
   return {
     ok,
-    status: ok ? 200 : 500,
+    status: ok ? 200 : 404,
     json: async () => body
   } as Response;
 }
@@ -141,6 +141,54 @@ describe("createRemoteJsonDataProvider", () => {
     expect(urls[1]).toContain("/data/history/2026-05-26.json?");
     expect(result.status).toBe("SUCCESS");
     expect(result.status === "SUCCESS" ? result.input.tradeDate : "").toBe("2026-05-26");
+  });
+
+  it("uses yesterday's premarket feed as stale observation data when today's history file is not published yet", async () => {
+    const { provider, urls } = createProviderFromFeeds({
+      "https://example.test/feed/data/today.json": {
+        tradeDate: "2026-05-27",
+        preMarketInput: {
+          ...sampleTradingDay,
+          tradeDate: "2026-05-27",
+          dataCompleteness: "PARTIAL"
+        }
+      }
+    });
+
+    const result = await provider.fetchPreMarketInput("2026-05-28");
+
+    expect(urls[0]).toContain("/data/today.json?");
+    expect(urls[1]).toContain("/data/history/2026-05-28.json?");
+    expect(result.status).toBe("SUCCESS");
+    expect(result.message).toContain("今日远程数据尚未发布");
+    expect(result.status === "SUCCESS" ? result.input.tradeDate : "").toBe("2026-05-28");
+    expect(result.status === "SUCCESS" ? result.input.dataCompleteness : "").toBe("MISSING");
+  });
+
+  it("does not use stale feed for 9:25 auction confirmation", async () => {
+    const { provider } = createProviderFromFeeds({
+      "https://example.test/feed/data/today.json": {
+        tradeDate: "2026-05-27",
+        auctionInput: {
+          ...sampleTradingDay,
+          tradeDate: "2026-05-27",
+          dataCompleteness: "PARTIAL"
+        }
+      }
+    });
+
+    const result = await provider.fetchAuctionInput("2026-05-28", {
+      stage: "PREMARKET_0830",
+      tradeDate: "2026-05-28",
+      marketStatus: "TRADABLE",
+      summary: "已生成",
+      candidates: [],
+      rejections: [],
+      dataCompleteness: "MISSING"
+    });
+
+    expect(result.status).toBe("MISSING_REQUIRED_DATA");
+    expect(result.message).toContain("今日远程数据尚未发布");
   });
 
   it("reports failure instead of falling back to sample data when remote fetch fails", async () => {

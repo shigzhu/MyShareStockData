@@ -15,6 +15,10 @@ def beijing_today(now_utc: str | None = None) -> str:
     return beijing_now(now_utc).date().isoformat()
 
 
+def beijing_timestamp(now_utc: str | None = None) -> str:
+    return beijing_now(now_utc).replace(microsecond=0).isoformat()
+
+
 def beijing_now(now_utc: str | None = None) -> datetime:
     if now_utc:
         normalized = now_utc.replace("Z", "+00:00")
@@ -156,6 +160,7 @@ def build_feed(
     trading_day_input: dict,
     stage: str,
     source: dict,
+    generated_at: str,
     existing_feed: dict | None = None,
 ) -> dict:
     pre_market_input = deepcopy(trading_day_input)
@@ -167,7 +172,7 @@ def build_feed(
     feed = {
         "schemaVersion": 1,
         "tradeDate": trade_date,
-        "generatedAt": trade_date,
+        "generatedAt": generated_at,
         "source": source,
         "preMarketInput": pre_market_input
     }
@@ -197,7 +202,7 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     existing_feed = load_existing_feed(output_dir, args.trade_date)
     trading_day_input, source = load_trading_day_input(args, existing_feed)
-    feed = build_feed(args.trade_date, trading_day_input, args.stage, source, existing_feed)
+    feed = build_feed(args.trade_date, trading_day_input, args.stage, source, beijing_timestamp(args.now_utc), existing_feed)
     write_feed(feed, output_dir)
 
 

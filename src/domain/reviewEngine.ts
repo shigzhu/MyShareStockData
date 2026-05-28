@@ -103,7 +103,7 @@ function buildAttribution(candidate: CandidatePlan, outcome: ReviewOutcome, syst
 
   const lines = [`次日理论收益${systemReturnPct ?? 0}%，推荐失败，需要检查高分因子是否失真`];
 
-  if (candidate.scoreBreakdown.discussion >= 24) {
+  if (candidate.scoreBreakdown.discussion >= 12) {
     lines.push("讨论热度分较高但收益失败，检查是否热度过热或一致性太强");
   }
 
@@ -111,11 +111,11 @@ function buildAttribution(candidate: CandidatePlan, outcome: ReviewOutcome, syst
     lines.push("游资逻辑分较高但收益失败，检查接力证据和退潮期风险");
   }
 
-  if (candidate.scoreBreakdown.quant >= 24) {
+  if (candidate.scoreBreakdown.quant >= 16) {
     lines.push("量化分较高但收益失败，检查短线情绪是否压过量化优势");
   }
 
-  if (candidate.scoreBreakdown.trading >= 16) {
+  if (candidate.scoreBreakdown.trading >= 20) {
     lines.push("交易主逻辑分较高但收益失败，检查竞价承接和题材延续");
   }
 
@@ -170,7 +170,9 @@ export function buildRuleSuggestions(
   const evidence = [
     `${candidate.stock.name}次日复盘失败`,
     `总分${candidate.score}/100`,
-    `交易${candidate.scoreBreakdown.trading}/20，游资${candidate.scoreBreakdown.hotMoney}/20，热度${candidate.scoreBreakdown.discussion}/30，量化${candidate.scoreBreakdown.quant}/30`
+    result.stage === "AUCTION_0925"
+      ? `竞价${candidate.scoreBreakdown.auction}/40，8:30延续${candidate.scoreBreakdown.premarket}/20，题材${candidate.scoreBreakdown.themeOpen}/15，盘口${candidate.scoreBreakdown.orderBook}/10，接力${candidate.scoreBreakdown.hotMoneyRelay}/10，复核${candidate.scoreBreakdown.riskRecheck}/5`
+      : `交易${candidate.scoreBreakdown.trading}/25，游资${candidate.scoreBreakdown.hotMoney}/20，量化${candidate.scoreBreakdown.quant}/20，热度${candidate.scoreBreakdown.discussion}/15，官方${candidate.scoreBreakdown.official}/10，复盘${candidate.scoreBreakdown.review}/10`
   ];
 
   const suggestions: RuleSuggestion[] = [
@@ -189,7 +191,7 @@ export function buildRuleSuggestions(
     }
   ];
 
-  if (candidate.scoreBreakdown.discussion >= 24) {
+  if (candidate.scoreBreakdown.discussion >= 12) {
     suggestions.push({
       id: `${idBase}-discussion`,
       createdAt: review.updatedAt,

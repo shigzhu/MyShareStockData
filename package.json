@@ -10,7 +10,7 @@
     "test:watch": "vitest",
     "android:init": "cap add android",
     "android:sync": "npm run build && cap sync android",
-    "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug"
+    "android:apk": "npm run android:sync && cd android && set JAVA_HOME=..\\.local-android\\jdk&& set ANDROID_HOME=..\\.local-android\\sdk&& gradlew.bat assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",

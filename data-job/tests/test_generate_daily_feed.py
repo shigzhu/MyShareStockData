@@ -37,7 +37,7 @@ class GenerateDailyFeedTest(unittest.TestCase):
             today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
 
         self.assertEqual(today["tradeDate"], "2026-05-25")
-        self.assertEqual(today["generatedAt"], "2026-05-25")
+        self.assertEqual(today["generatedAt"], "2026-05-25T00:30:00+08:00")
         self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-25")
 
     def test_beijing_calendar_date_moves_with_current_day(self):
@@ -65,7 +65,7 @@ class GenerateDailyFeedTest(unittest.TestCase):
             today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
 
         self.assertEqual(today["tradeDate"], "2026-05-27")
-        self.assertEqual(today["generatedAt"], "2026-05-27")
+        self.assertEqual(today["generatedAt"], "2026-05-27T00:30:00+08:00")
         self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-27")
 
     def test_writes_today_and_history_feed_files_from_fixture_source(self):
@@ -126,10 +126,40 @@ class GenerateDailyFeedTest(unittest.TestCase):
             )
 
             today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+            history_exists = (output_dir / "history" / "2026-05-25.json").exists()
 
         self.assertEqual(today["source"]["mode"], "SAMPLE_FALLBACK")
         self.assertIn("fallbackReason", today["source"])
         self.assertEqual(today["preMarketInput"]["dataCompleteness"], "MISSING")
+        self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-25")
+        self.assertTrue(history_exists)
+
+    def test_generated_at_records_beijing_timestamp_instead_of_date_only(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--now-utc",
+                    "2026-05-24T16:35:20Z",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(today["tradeDate"], "2026-05-25")
+        self.assertEqual(today["generatedAt"], "2026-05-25T00:35:20+08:00")
 
     def test_auction_failure_preserves_existing_premarket_input(self):
         with tempfile.TemporaryDirectory() as temp_dir:

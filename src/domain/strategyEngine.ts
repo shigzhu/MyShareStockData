@@ -19,33 +19,103 @@ import type {
 } from "./types";
 
 function scoreTradingLogic(stock: StockMetrics, themeScore: number): number {
-  const liquidityScore = Math.min(5, stock.turnoverAmount / 500_000_000);
-  const attention = Math.min(5, stock.attentionScore * 0.05);
-  const position = Math.max(0, 5 - stock.return10dPct * 0.08 - stock.distanceFromMa5Pct * 0.12);
-  const theme = Math.min(5, themeScore * 0.05);
+  const liquidityScore = Math.min(6, stock.turnoverAmount / 430_000_000);
+  const attention = Math.min(6, stock.attentionScore * 0.06);
+  const position = Math.max(0, 6 - stock.return10dPct * 0.09 - stock.distanceFromMa5Pct * 0.13);
+  const theme = Math.min(7, themeScore * 0.07);
   return Math.round(liquidityScore + attention + position + theme);
 }
 
 function normalizeDiscussionScore(heat: DiscussionHeatScore): number {
-  return Math.max(0, Math.min(30, heat.weightedScore));
+  return Math.max(0, Math.min(15, heat.weightedScore));
+}
+
+function normalizeQuantScore(quant: QuantScore): number {
+  return Math.round((Math.max(0, Math.min(30, quant.total)) / 30) * 20);
+}
+
+function scoreOfficialSignals(stock: StockMetrics): number {
+  let score = 8;
+
+  if (stock.majorNegativeEvent || stock.severeFinancialRisk || stock.isSt || stock.isSuspended) {
+    return 0;
+  }
+
+  if (stock.hotMoney.hasDragonTigerSeat && stock.hotMoney.seatNetBuyScore >= 65) {
+    score += 2;
+  } else if (stock.hotMoney.policyCatalystScore >= 70) {
+    score += 1;
+  }
+
+  return Math.max(0, Math.min(10, score));
+}
+
+function scoreReviewFeedback(stock: StockMetrics): number {
+  const stableShape = stock.return10dPct <= 18 && stock.distanceFromMa5Pct <= 6 && stock.hotMoney.lateRelayRisk === false;
+  const score = 7 + (stableShape ? 2 : 0) + (stock.weakAcceptanceAfterBlowOff ? -3 : 0);
+  return Math.max(0, Math.min(10, score));
+}
+
+function emptyAuctionBreakdown() {
+  return {
+    auction: 0,
+    premarket: 0,
+    themeOpen: 0,
+    orderBook: 0,
+    hotMoneyRelay: 0,
+    riskRecheck: 0
+  };
 }
 
 function buildScoreBreakdown(
   tradingScore: number,
   hotMoney: HotMoneyScore,
   heat: DiscussionHeatScore,
-  quant: QuantScore
+  quant: QuantScore,
+  stock: StockMetrics
 ) {
-  const trading = Math.max(0, Math.min(20, tradingScore));
+  const trading = Math.max(0, Math.min(25, tradingScore));
   const discussion = normalizeDiscussionScore(heat);
-  const total = trading + hotMoney.total + discussion + quant.total;
+  const quantScore = normalizeQuantScore(quant);
+  const official = scoreOfficialSignals(stock);
+  const review = scoreReviewFeedback(stock);
+  const total = trading + hotMoney.total + quantScore + discussion + official + review;
 
   return {
     trading,
     hotMoney: hotMoney.total,
     discussion,
-    quant: quant.total,
-    total
+    quant: quantScore,
+    official,
+    review,
+    ...emptyAuctionBreakdown(),
+    total: Math.min(100, total)
+  };
+}
+
+function buildAuctionScoreBreakdown(candidate: CandidatePlan, hotMoney: HotMoneyScore, auctionScore: number, confirmed: boolean) {
+  const auction = Math.max(0, Math.min(40, auctionScore));
+  const premarket = Math.round((Math.max(0, Math.min(100, candidate.score)) / 100) * 20);
+  const themeOpen = Math.round((Math.max(0, Math.min(25, candidate.scoreBreakdown.trading)) / 25) * 15);
+  const orderBook = confirmed ? 10 : Math.round((candidate.scoreBreakdown.trading / 25) * 5);
+  const hotMoneyRelay = Math.round((Math.max(0, Math.min(20, hotMoney.total)) / 20) * 10);
+  const riskRecheck = candidate.heat.reject || hotMoney.overheated ? 0 : 5;
+  const total = auction + premarket + themeOpen + orderBook + hotMoneyRelay + riskRecheck;
+
+  return {
+    trading: 0,
+    hotMoney: 0,
+    discussion: 0,
+    quant: 0,
+    official: 0,
+    review: 0,
+    auction,
+    premarket,
+    themeOpen,
+    orderBook,
+    hotMoneyRelay,
+    riskRecheck,
+    total: Math.min(100, total)
   };
 }
 
@@ -57,7 +127,7 @@ function buildCandidatePlan(
   quant = scoreQuantFactors(stock),
   hotMoney = scoreHotMoney(stock, "PREMARKET_0830")
 ): CandidatePlan {
-  const scoreBreakdown = buildScoreBreakdown(tradingScore, hotMoney, heat, quant);
+  const scoreBreakdown = buildScoreBreakdown(tradingScore, hotMoney, heat, quant, stock);
   return {
     stock,
     theme,
@@ -263,9 +333,9 @@ export function generateAuctionPlan(
     const auction = input.auctionByCode?.[candidate.stock.code];
     const check = confirmAuction(candidate, auction, thresholds);
     const hotMoney = scoreHotMoney(candidate.stock, "AUCTION_0925");
-    const tradingScore = Math.min(20, candidate.scoreBreakdown.trading + (check.confirmed ? 3 : 0));
-    const scoreBreakdown = buildScoreBreakdown(tradingScore, hotMoney, candidate.heat, candidate.quant);
     const confirmed = check.confirmed && hotMoney.eligibleForPrimary && !hotMoney.overheated;
+    const scoreBreakdown = buildAuctionScoreBreakdown(candidate, hotMoney, check.score, confirmed);
+    const tradingScore = scoreBreakdown.themeOpen + scoreBreakdown.orderBook;
     return {
       ...candidate,
       role: confirmed ? ("CONFIRMED" as const) : ("BACKUP" as const),
@@ -283,7 +353,7 @@ export function generateAuctionPlan(
     .sort((a, b) => b.score - a.score);
   const backups = checked
     .filter((candidate) => candidate.role !== "CONFIRMED")
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => Number(b.hotMoney.eligibleForPrimary) - Number(a.hotMoney.eligibleForPrimary) || b.score - a.score);
   const ranked = [...confirmed, ...backups].slice(0, confirmed.length <= 2 ? 3 : 5);
 
   if (ranked[0] && ranked[0].role === "CONFIRMED" && ranked[0].hotMoney.eligibleForPrimary) {

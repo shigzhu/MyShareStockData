@@ -92,6 +92,7 @@ class EastMoneyAdapter:
     def fetch_pre_market_input(self, trade_date: str) -> dict:
         themes = self._fetch_themes()
         market_rows = self._fetch_market_rows()
+        self._validate_pre_market_payload(market_rows, themes)
 
         return {
             "tradeDate": trade_date,
@@ -106,6 +107,19 @@ class EastMoneyAdapter:
         result["dataCompleteness"] = "PARTIAL"
         result["auctionByCode"] = self._build_auction_by_code(pre_market_input)
         return result
+
+    def _validate_pre_market_payload(self, market_rows: list[dict], themes: list[dict]) -> None:
+        stocks = [stock for theme in themes for stock in theme.get("stocks", [])]
+        has_market_breadth = any(_number(row.get("f3")) != 0 for row in market_rows)
+        has_stock_liquidity = any(
+            _number(stock.get("turnoverAmount")) > 0 and _number(stock.get("turnoverRatePct")) > 0 for stock in stocks
+        )
+        has_theme_strength = any(
+            _number(theme.get("recentStrengthScore")) > 0 or _number(theme.get("turnoverHeatScore")) > 0 for theme in themes
+        )
+
+        if not market_rows or not themes or not stocks or not has_market_breadth or not has_stock_liquidity or not has_theme_strength:
+            raise EastMoneyDataError("东方财富公开行情关键字段为空")
 
     def _request_api(self, urls: list[str], params: dict) -> dict:
         last_error: Exception | None = None

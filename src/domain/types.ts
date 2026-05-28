@@ -141,6 +141,14 @@ export interface ScoreBreakdown {
   hotMoney: number;
   discussion: number;
   quant: number;
+  official: number;
+  review: number;
+  auction: number;
+  premarket: number;
+  themeOpen: number;
+  orderBook: number;
+  hotMoneyRelay: number;
+  riskRecheck: number;
   total: number;
 }
 

@@ -29,31 +29,36 @@ describe("generatePreMarketPlan", () => {
     expect(result.candidates[0].role).toBe("PRIMARY");
   });
 
-  it("uses cross-platform discussion heat as 30 percent of the stock score", () => {
+  it("caps cross-platform discussion heat at 15 percent of the 8:30 stock score", () => {
     const normalHeat = generatePreMarketPlan(sampleTradingDay);
     const coldStock = normalHeat.candidates.find((candidate) => candidate.stock.code === "688256");
     const warmingStock = normalHeat.candidates.find((candidate) => candidate.stock.code === "300750");
 
     expect(warmingStock?.heat.temperature).toBe("升温");
-    expect(warmingStock?.heat.weightedScore).toBeGreaterThan(20);
+    expect(warmingStock?.heat.weightedScore).toBeLessThanOrEqual(15);
+    expect(warmingStock?.heat.weightedScore).toBeGreaterThan(9);
     expect(coldStock?.heat.temperature).toBe("冷门");
-    expect(coldStock?.heat.weightedScore).toBeLessThan(12);
+    expect(coldStock?.heat.weightedScore).toBeLessThan(6);
   });
 
-  it("builds a 100 point score from 20 trading, 20 hot-money, 30 discussion, and 30 quant points", () => {
+  it("builds an 8:30 score from 25 trading, 20 hot-money, 20 quant, 15 discussion, 10 official, and 10 review points", () => {
     const result = generatePreMarketPlan(sampleTradingDay);
     const candidate = result.candidates[0];
 
-    expect(candidate.scoreBreakdown.trading).toBeLessThanOrEqual(20);
+    expect(candidate.scoreBreakdown.trading).toBeLessThanOrEqual(25);
     expect(candidate.scoreBreakdown.hotMoney).toBeLessThanOrEqual(20);
-    expect(candidate.scoreBreakdown.discussion).toBeLessThanOrEqual(30);
-    expect(candidate.scoreBreakdown.quant).toBeLessThanOrEqual(30);
+    expect(candidate.scoreBreakdown.quant).toBeLessThanOrEqual(20);
+    expect(candidate.scoreBreakdown.discussion).toBeLessThanOrEqual(15);
+    expect(candidate.scoreBreakdown.official).toBeLessThanOrEqual(10);
+    expect(candidate.scoreBreakdown.review).toBeLessThanOrEqual(10);
     expect(candidate.scoreBreakdown.total).toBe(candidate.score);
     expect(candidate.scoreBreakdown.total).toBe(
       candidate.scoreBreakdown.trading +
         candidate.scoreBreakdown.hotMoney +
+        candidate.scoreBreakdown.quant +
         candidate.scoreBreakdown.discussion +
-        candidate.scoreBreakdown.quant
+        candidate.scoreBreakdown.official +
+        candidate.scoreBreakdown.review
     );
   });
 
@@ -163,6 +168,27 @@ describe("generatePreMarketPlan", () => {
 });
 
 describe("generateAuctionPlan", () => {
+  it("rebuilds the 9:25 score around 40 percent auction confirmation weight", () => {
+    const premarket = generatePreMarketPlan(sampleTradingDay);
+    const result = generateAuctionPlan(sampleTradingDay, premarket);
+    const candidate = result.candidates[0];
+
+    expect(candidate.scoreBreakdown.auction).toBeLessThanOrEqual(40);
+    expect(candidate.scoreBreakdown.premarket).toBeLessThanOrEqual(20);
+    expect(candidate.scoreBreakdown.themeOpen).toBeLessThanOrEqual(15);
+    expect(candidate.scoreBreakdown.orderBook).toBeLessThanOrEqual(10);
+    expect(candidate.scoreBreakdown.hotMoneyRelay).toBeLessThanOrEqual(10);
+    expect(candidate.scoreBreakdown.riskRecheck).toBeLessThanOrEqual(5);
+    expect(candidate.scoreBreakdown.total).toBe(
+      candidate.scoreBreakdown.auction +
+        candidate.scoreBreakdown.premarket +
+        candidate.scoreBreakdown.themeOpen +
+        candidate.scoreBreakdown.orderBook +
+        candidate.scoreBreakdown.hotMoneyRelay +
+        candidate.scoreBreakdown.riskRecheck
+    );
+  });
+
   it("ranks the only fully confirmed stock first and fills backups from premarket candidates", () => {
     const premarket = generatePreMarketPlan(sampleTradingDay);
     const result = generateAuctionPlan(sampleTradingDay, premarket);

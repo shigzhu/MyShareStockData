@@ -13,6 +13,12 @@ interface RemoteJsonDataProviderOptions {
   cacheKey?: () => string;
 }
 
+class FeedHttpError extends Error {
+  constructor(public readonly status: number) {
+    super(`HTTP ${status}`);
+  }
+}
+
 function joinFeedUrl(baseUrl: string, path: string, cacheKey: string) {
   return `${baseUrl.replace(/\/$/, "")}${path}?v=${encodeURIComponent(cacheKey)}`;
 }
@@ -33,10 +39,27 @@ async function fetchFeed(baseUrl: string, fetcher: typeof fetch, path: string, c
   const response = await fetcher(joinFeedUrl(baseUrl, path, cacheKey), { cache: "no-store" });
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw new FeedHttpError(response.status);
   }
 
   return (await response.json()) as RemoteFeed;
+}
+
+function cloneAsStaleObservationInput(value: unknown, tradeDate: string): TradingDayInput | undefined {
+  if (!isTradingDayInput(value, String((value as { tradeDate?: unknown } | undefined)?.tradeDate ?? ""))) {
+    return undefined;
+  }
+
+  return {
+    ...value,
+    tradeDate,
+    dataCompleteness: "MISSING",
+    themes: value.themes.map((theme) => ({
+      ...theme,
+      stocks: theme.stocks.map((stock) => ({ ...stock, themeId: stock.themeId }))
+    })),
+    auctionByCode: undefined
+  };
 }
 
 function inputFromFeed(
@@ -82,8 +105,30 @@ async function fetchInputFromRemote(
   }
 
   if (todayFeed.tradeDate !== tradeDate) {
-    const historyFeed = await fetchFeed(baseUrl, fetcher, `/data/history/${tradeDate}.json`, cacheKey);
-    return inputFromFeed(historyFeed, tradeDate, key, missingMessage);
+    try {
+      const historyFeed = await fetchFeed(baseUrl, fetcher, `/data/history/${tradeDate}.json`, cacheKey);
+      return inputFromFeed(historyFeed, tradeDate, key, missingMessage);
+    } catch (error) {
+      if (error instanceof FeedHttpError && error.status === 404) {
+        if (key === "preMarketInput") {
+          const staleInput = cloneAsStaleObservationInput(todayFeed.preMarketInput, tradeDate);
+          if (staleInput) {
+            return {
+              status: "SUCCESS",
+              input: staleInput,
+              message: "今日远程数据尚未发布，使用最近一次8:30数据生成非实时观察名单"
+            };
+          }
+        }
+
+        return {
+          status: "MISSING_REQUIRED_DATA",
+          message: "今日远程数据尚未发布，9:25不做竞价确认"
+        };
+      }
+
+      throw error;
+    }
   }
 
   return todayResult;

@@ -92,6 +92,30 @@ describe("App", () => {
     expect(await screen.findByText("8:30 不推荐")).toBeInTheDocument();
   });
 
+  it("shows a stale 8:30 observation plan instead of a hard failure when today's feed is not published", async () => {
+    const staleProvider: DataProvider = {
+      fetchPreMarketInput: async (tradeDate) => ({
+        status: "SUCCESS",
+        message: "今日远程数据尚未发布，使用最近一次8:30数据生成非实时观察名单",
+        input: {
+          ...sampleTradingDay,
+          tradeDate,
+          dataCompleteness: "MISSING"
+        }
+      }),
+      fetchAuctionInput: async () => ({
+        status: "MISSING_REQUIRED_DATA",
+        message: "今日远程数据尚未发布，9:25不做竞价确认"
+      })
+    };
+
+    render(<App today={new Date(2026, 4, 28, 8, 35)} dataProvider={staleProvider} />);
+
+    expect(await screen.findByText("8:30 成功")).toBeInTheDocument();
+    expect(screen.getByText("今日首推")).toBeInTheDocument();
+    expect(screen.getByText("MISSING")).toBeInTheDocument();
+  });
+
   it("renders data status labels on WebViews without String.replaceAll", async () => {
     const originalReplaceAll = String.prototype.replaceAll;
     // Older Android System WebView versions do not support replaceAll.
@@ -164,10 +188,12 @@ describe("App", () => {
     renderWithSampleProvider(new Date(2026, 4, 21, 9, 0));
 
     expect((await screen.findAllByText(/总分 \d+\/100/)).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/交易 \d+\/20/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/交易 \d+\/25/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/游资 \d+\/20/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/热度 \d+\/30/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/量化 \d+\/30/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/量化 \d+\/20/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/热度 \d+\/15/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/官方 \d+\/10/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/复盘 \d+\/10/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("includes quant and hot-money explanations in recommendation details", async () => {

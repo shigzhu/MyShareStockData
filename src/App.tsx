@@ -358,10 +358,25 @@ function CandidateCard({
       </div>
 
       <div className="score-breakdown">
-        <span>交易 {candidate.scoreBreakdown.trading}/20</span>
-        <span>游资 {candidate.scoreBreakdown.hotMoney}/20</span>
-        <span>热度 {candidate.scoreBreakdown.discussion}/30</span>
-        <span>量化 {candidate.scoreBreakdown.quant}/30</span>
+        {stage === "AUCTION_0925" ? (
+          <>
+            <span>竞价 {candidate.scoreBreakdown.auction}/40</span>
+            <span>8:30 {candidate.scoreBreakdown.premarket}/20</span>
+            <span>题材 {candidate.scoreBreakdown.themeOpen}/15</span>
+            <span>盘口 {candidate.scoreBreakdown.orderBook}/10</span>
+            <span>接力 {candidate.scoreBreakdown.hotMoneyRelay}/10</span>
+            <span>复核 {candidate.scoreBreakdown.riskRecheck}/5</span>
+          </>
+        ) : (
+          <>
+            <span>交易 {candidate.scoreBreakdown.trading}/25</span>
+            <span>游资 {candidate.scoreBreakdown.hotMoney}/20</span>
+            <span>量化 {candidate.scoreBreakdown.quant}/20</span>
+            <span>热度 {candidate.scoreBreakdown.discussion}/15</span>
+            <span>官方 {candidate.scoreBreakdown.official}/10</span>
+            <span>复盘 {candidate.scoreBreakdown.review}/10</span>
+          </>
+        )}
       </div>
 
       <div className="heat-row">

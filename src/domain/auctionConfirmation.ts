@@ -15,7 +15,7 @@ export function confirmAuction(
   if (!auction) {
     return {
       confirmed: false,
-      score: candidate.score,
+      score: 0,
       reasons: ["缺少9:25竞价数据"],
       risks: ["只能保留为备选观察"]
     };
@@ -26,7 +26,7 @@ export function confirmAuction(
     (auction.auctionTurnoverAmount / Math.max(1, auction.yesterdayTurnoverAmount)) * 100;
   const reasons: string[] = [];
   const risks: string[] = [];
-  let score = candidate.score;
+  let score = 0;
 
   if (expansion >= thresholds.auction.minAuctionTurnoverExpansionMultiple) {
     score += 18;

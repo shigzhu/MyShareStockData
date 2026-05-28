@@ -88,6 +88,46 @@ class EastMoneyAdapterTest(unittest.TestCase):
         self.assertGreater(stock["attentionScore"], 0)
         self.assertGreaterEqual(len(calls), 3)
 
+    def test_rejects_public_market_data_when_required_realtime_fields_are_all_zero(self):
+        def client(url):
+            if "fs=m%3A90%2Bt%3A3" in url:
+                return fake_response(
+                    [
+                        {
+                            "f12": "BK1682",
+                            "f14": "2026一季报扭亏",
+                            "f3": 0,
+                            "f6": 0,
+                            "f8": 0,
+                        }
+                    ]
+                )
+            if "fs=b%3ABK1682" in url:
+                return fake_response(
+                    [
+                        {
+                            "f12": "920125",
+                            "f14": "鸿仕达",
+                            "f2": 211.0,
+                            "f3": 0,
+                            "f6": 0,
+                            "f8": 0,
+                            "f9": 2083.98,
+                            "f18": 211.0,
+                            "f21": 1_000_000_000,
+                            "f23": 17.36,
+                        }
+                    ]
+                )
+            if "fs=m%3A0%2Bt%3A6" in url:
+                return fake_response([{"f3": 0}, {"f3": 0}, {"f3": 0}])
+            raise AssertionError(f"unexpected url: {url}")
+
+        adapter = EastMoneyAdapter(http_get_json=client)
+
+        with self.assertRaisesRegex(RuntimeError, "东方财富公开行情关键字段为空"):
+            adapter.fetch_pre_market_input("2026-05-28")
+
     def test_builds_auction_input_only_for_premarket_pool(self):
         def client(url):
             if "api/qt/ulist.np/get" in url:
