@@ -3,6 +3,7 @@ import type { StrategyResult, TradingDayInput } from "../domain/types";
 
 interface RemoteFeed {
   tradeDate?: unknown;
+  tradingStatus?: unknown;
   preMarketInput?: unknown;
   auctionInput?: unknown;
 }
@@ -33,6 +34,10 @@ function isTradingDayInput(value: unknown, tradeDate: string): value is TradingD
   }
 
   return value.tradeDate === tradeDate && isObject(value.marketMood) && Array.isArray(value.themes);
+}
+
+function isRemoteTradingStatus(value: unknown): value is { isTradingDay: boolean; message?: string } {
+  return isObject(value) && typeof value.isTradingDay === "boolean";
 }
 
 async function fetchFeed(baseUrl: string, fetcher: typeof fetch, path: string, cacheKey: string): Promise<RemoteFeed> {
@@ -140,6 +145,51 @@ export function createRemoteJsonDataProvider({
   cacheKey = () => String(Date.now())
 }: RemoteJsonDataProviderOptions): DataProvider {
   return {
+    async fetchTradingStatus(tradeDate) {
+      try {
+        const feed = await fetchFeed(baseUrl, fetcher, "/data/today.json", cacheKey());
+        const result =
+          feed.tradeDate === tradeDate && isRemoteTradingStatus(feed.tradingStatus)
+            ? feed.tradingStatus
+            : undefined;
+
+        if (result) {
+          return {
+            status: "SUCCESS",
+            input: result,
+            message: result.message ?? "远程交易日历已加载"
+          };
+        }
+
+        if (feed.tradeDate !== tradeDate) {
+          try {
+            const historyFeed = await fetchFeed(baseUrl, fetcher, `/data/history/${tradeDate}.json`, cacheKey());
+            if (historyFeed.tradeDate === tradeDate && isRemoteTradingStatus(historyFeed.tradingStatus)) {
+              return {
+                status: "SUCCESS",
+                input: historyFeed.tradingStatus,
+                message: historyFeed.tradingStatus.message ?? "远程交易日历已加载"
+              };
+            }
+          } catch {
+            return {
+              status: "MISSING_REQUIRED_DATA",
+              message: "远程交易日历未发布"
+            };
+          }
+        }
+
+        return {
+          status: "MISSING_REQUIRED_DATA",
+          message: "远程交易日历缺失"
+        };
+      } catch (error) {
+        return {
+          status: "FAILED",
+          message: `远程交易日历加载失败：${error instanceof Error ? error.message : "未知错误"}`
+        };
+      }
+    },
     async fetchPreMarketInput(tradeDate) {
       try {
         return await fetchInputFromRemote(

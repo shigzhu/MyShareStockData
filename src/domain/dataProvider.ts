@@ -14,6 +14,7 @@ export type DataProviderResult<T> =
     };
 
 export interface DataProvider {
+  fetchTradingStatus?(tradeDate: string): Promise<DataProviderResult<{ isTradingDay: boolean; message?: string }>>;
   fetchPreMarketInput(tradeDate: string): Promise<DataProviderResult<TradingDayInput>>;
   fetchAuctionInput(tradeDate: string, preMarketResult: StrategyResult): Promise<DataProviderResult<TradingDayInput>>;
 }

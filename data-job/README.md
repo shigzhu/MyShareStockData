@@ -34,11 +34,16 @@ data/history/YYYY-MM-DD.json
 - 04:00/06:00/08:00：使用现有公开源或 fixture 先写缓存，降低 8:30 一次性抓取压力。
 - 8:30：市场涨跌家数、热门概念、概念内个股行情、成交额、换手率、涨跌幅、代码名称匹配。
 - 9:25：只对 8:30 池子拉取公开行情快照，派生竞价确认字段。
+- 交易日历：默认静态 2026 日历；如设置 `TUSHARE_TOKEN`，优先使用 Tushare `trade_cal`。
+- 量化增强：如设置 `TUSHARE_TOKEN`，会尝试补充 `daily_basic`；如传入 `--enable-akshare` 且环境安装 AkShare，会尝试补充财务指标。
+- 讨论热度增强：可通过 `--sentiment-file` 或 `DISCUSSION_HEAT_FILE` 传入问财/股吧/微博导出的 JSON。
+- 竞价增强：可通过 `--auction-file` 或 `AUCTION_FILE` 传入稳定竞价或 Level-2 源导出的 9:25 JSON。
+- 如果当前已过 9:35 且没有有效 `auctionInput`，脚本不会用盘中行情补写假 9:25，只保留 8:30 准备名单并标记 `AUCTION_WINDOW_MISSED`。
 
 仍需后续增强：
 
-- 问财 2.0、东方财富股吧、微博财经的真实跨平台讨论热度。
-- Tushare 或其它授权源的财务量化字段。
+- 自动化采集问财 2.0、东方财富股吧、微博财经真实跨平台讨论热度。
+- 更完整的 Tushare/AkShare 财务字段映射和异常监控。
 - 更稳定的 9:25 集合竞价专用数据源。
 
 如果公开源失败，脚本会写入样本兜底数据并标记为 `SAMPLE_FALLBACK`，同时把输入数据完整性标为 `MISSING`。APK 应展示缺关键数据，不应把它当实盘推荐。
@@ -49,6 +54,15 @@ data/history/YYYY-MM-DD.json
 python data-job/generate_daily_feed.py --stage premarket --source eastmoney --output-dir data
 python data-job/generate_daily_feed.py --stage auction --source eastmoney --output-dir data
 python -m unittest discover -s data-job/tests
+```
+
+可选增强：
+
+```powershell
+$env:TUSHARE_TOKEN="你的Tushare token"
+python data-job/generate_daily_feed.py --stage premarket --source eastmoney --output-dir data
+python data-job/generate_daily_feed.py --stage auction --source eastmoney --auction-file data/manual/auction-2026-05-25.json --output-dir data
+python data-job/generate_daily_feed.py --stage premarket --source eastmoney --sentiment-file data/manual/sentiment-2026-05-25.json --output-dir data
 ```
 
 分批验证：

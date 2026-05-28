@@ -167,8 +167,8 @@ function initialRefreshState(tradeDate: string): IntradayRefreshState {
   };
 }
 
-function recommendationKey(stage: TradeStage, candidate: CandidatePlan) {
-  return `${stage}-${candidate.stock.code}`;
+function recommendationKey(tradeDate: string, stage: TradeStage, candidate: CandidatePlan) {
+  return `${tradeDate}-${stage}-${candidate.stock.code}`;
 }
 
 function tradeOutcomeLabel(outcome: TradeExecutionOutcome) {
@@ -309,7 +309,7 @@ function CandidateCard({
   stage: TradeStage;
   tradeDate: string;
   tradeLog?: TradeLogEntry;
-  onDelete: (stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  onDelete: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
   onSaveTrade: (entry: TradeLogEntry) => void;
 }) {
   const [choosingDelete, setChoosingDelete] = useState(false);
@@ -339,7 +339,7 @@ function CandidateCard({
       {choosingDelete && (
         <div className="delete-reasons">
           {deleteReasons.map((reason) => (
-            <button key={reason} type="button" onClick={() => onDelete(stage, candidate, reason)}>
+            <button key={reason} type="button" onClick={() => onDelete(tradeDate, stage, candidate, reason)}>
               {reason}
             </button>
           ))}
@@ -433,7 +433,7 @@ function PrimaryStrip({
   stage: TradeStage;
   tradeDate: string;
   tradeLog?: TradeLogEntry;
-  onDelete: (stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  onDelete: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
   onSaveTrade: (entry: TradeLogEntry) => void;
 }) {
   if (!candidate) {
@@ -474,10 +474,10 @@ function PlanSection({
   hiddenKeys: Set<string>;
   tradeDate: string;
   getTradeLog: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan) => TradeLogEntry | undefined;
-  onDelete: (stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  onDelete: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
   onSaveTrade: (entry: TradeLogEntry) => void;
 }) {
-  const visibleCandidates = result.candidates.filter((candidate) => !hiddenKeys.has(recommendationKey(result.stage, candidate)));
+  const visibleCandidates = result.candidates.filter((candidate) => !hiddenKeys.has(recommendationKey(tradeDate, result.stage, candidate)));
 
   return (
     <section className="plan-section">
@@ -519,14 +519,14 @@ function ArchivedPlanSection({
   hiddenKeys: Set<string>;
   tradeDate: string;
   getTradeLog: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan) => TradeLogEntry | undefined;
-  onDelete: (stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  onDelete: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
   onSaveTrade: (entry: TradeLogEntry) => void;
 }) {
   if (!result) {
     return null;
   }
 
-  const visibleCandidates = result.candidates.filter((candidate) => !hiddenKeys.has(recommendationKey(result.stage, candidate)));
+  const visibleCandidates = result.candidates.filter((candidate) => !hiddenKeys.has(recommendationKey(tradeDate, result.stage, candidate)));
 
   return (
     <details>
@@ -571,7 +571,7 @@ function History({
 }: {
   dailyPlan: DailyPlan;
   hiddenKeys: Set<string>;
-  onDelete: (stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  onDelete: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
   getTradeLog: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan) => TradeLogEntry | undefined;
   onSaveTrade: (entry: TradeLogEntry) => void;
   defaultOpen: boolean;
@@ -708,8 +708,9 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
   const [tradeLogs, setTradeLogs] = useState<TradeLogEntry[]>(() => reviewStore.loadTradeLogs());
   const [ruleSuggestions, setRuleSuggestions] = useState<RuleSuggestion[]>(() => reviewStore.loadRuleSuggestions());
   const [csvExport, setCsvExport] = useState("");
+  const [remoteTradingDayByDate, setRemoteTradingDayByDate] = useState<Record<string, boolean | undefined>>({});
   const phoneDate = formatBeijingDate(currentTime);
-  const isTradingDay = isAshareTradingDay(phoneDate);
+  const isTradingDay = remoteTradingDayByDate[phoneDate] ?? isAshareTradingDay(phoneDate);
   const currentGeneratedPlan = refreshState.tradeDate === phoneDate ? planFromRefreshState(refreshState) : undefined;
   const currentPlan = currentGeneratedPlan ?? plansByDate[phoneDate];
   const hasPriorPlan = sortedPlans(plansByDate).some((plan) => plan.tradeDate < phoneDate);
@@ -729,6 +730,15 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
         provider: dataProvider,
         previousState: refreshStateRef.current.tradeDate === formatBeijingDate(time) ? refreshStateRef.current : undefined
       });
+      if (dataProvider.fetchTradingStatus) {
+        const status = await dataProvider.fetchTradingStatus(formatBeijingDate(time));
+        if (status.status === "SUCCESS") {
+          setRemoteTradingDayByDate((current) => ({
+            ...current,
+            [formatBeijingDate(time)]: status.input.isTradingDay
+          }));
+        }
+      }
       refreshStateRef.current = nextState;
       setRefreshState(nextState);
 
@@ -779,12 +789,16 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
   }, [refreshForTime, today]);
 
   const hiddenKeys = useMemo(
-    () => new Set(deletions.map((deletion) => `${deletion.stage}-${deletion.code}`)),
+    () => new Set(deletions.map((deletion) => `${deletion.tradeDate}-${deletion.stage}-${deletion.code}`)),
     [deletions]
   );
 
-  const visiblePrePrimary = preMarket?.candidates.find((candidate) => !hiddenKeys.has(recommendationKey(preMarket.stage, candidate)));
-  const visibleAuctionPrimary = auction?.candidates.find((candidate) => !hiddenKeys.has(recommendationKey(auction.stage, candidate)));
+  const visiblePrePrimary = preMarket?.candidates.find((candidate) =>
+    !hiddenKeys.has(recommendationKey(currentPlan?.tradeDate ?? phoneDate, preMarket.stage, candidate))
+  );
+  const visibleAuctionPrimary = auction?.candidates.find((candidate) =>
+    !hiddenKeys.has(recommendationKey(currentPlan?.tradeDate ?? phoneDate, auction.stage, candidate))
+  );
   const reviewItems = useMemo<CandidateReview[]>(() => {
     const items: CandidateReview[] = [];
     for (const plan of sortedPlans(plansByDate)) {
@@ -845,11 +859,11 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
     );
   }
 
-  function handleDelete(stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) {
+  function handleDelete(tradeDate: string, stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) {
     const deletion: RecommendationDeletion = {
       code: candidate.stock.code,
       name: candidate.stock.name,
-      tradeDate: phoneDate,
+      tradeDate,
       stage,
       role: candidate.role,
       reason,

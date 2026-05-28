@@ -146,6 +146,13 @@ export async function runIntradayRefresh({
   let preMarket = pendingJob("PREMARKET_0830", tradeDate, "等待8:30生成准备名单");
   let auction = pendingJob("AUCTION_0925", tradeDate, "等待9:25集合竞价确认");
 
+  if (provider.fetchTradingStatus) {
+    const tradingStatus = await provider.fetchTradingStatus(tradeDate);
+    if (tradingStatus.status === "SUCCESS" && !tradingStatus.input.isTradingDay) {
+      return { tradeDate, preMarket, auction };
+    }
+  }
+
   if (!isAshareTradingDay(tradeDate)) {
     return { tradeDate, preMarket, auction };
   }

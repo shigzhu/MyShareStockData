@@ -176,6 +176,22 @@ describe("App", () => {
     expect(Array.from(container.querySelectorAll<HTMLDetailsElement>(".history details")).every((item) => !item.open)).toBe(true);
   });
 
+  it("uses remote trading calendar status when the static calendar is incomplete", async () => {
+    const provider: DataProvider = {
+      fetchTradingStatus: async () => ({
+        status: "SUCCESS",
+        input: { isTradingDay: false, message: "交易所休市日历已同步" }
+      }),
+      fetchPreMarketInput: async () => ({ status: "SUCCESS", input: sampleTradingDay }),
+      fetchAuctionInput: async () => ({ status: "SUCCESS", input: sampleTradingDay })
+    };
+
+    render(<App today={new Date(2026, 6, 15, 9, 0)} dataProvider={provider} />);
+
+    expect(await screen.findByText("今日未开市，好好休息！")).toBeInTheDocument();
+    expect(screen.queryByText("8:30 成功")).not.toBeInTheDocument();
+  });
+
   it("uses stock names that match their codes", async () => {
     renderWithSampleProvider(new Date(2026, 4, 21, 9, 0));
 
@@ -263,6 +279,22 @@ describe("App", () => {
     render(<App today={new Date(2026, 4, 21, 9, 0)} dataProvider={sampleDataProvider} />);
 
     expect(await screen.findByText(/已删除 1 条推荐/)).toBeInTheDocument();
+  });
+
+  it("does not hide the same stock on a later trade date after deleting it today", async () => {
+    localStorage.clear();
+    const user = userEvent.setup();
+    const first = renderWithSampleProvider(new Date(2026, 4, 21, 9, 0));
+
+    await screen.findByText("8:30 成功");
+    await user.click(screen.getAllByRole("button", { name: /删除宁德时代/ })[0]);
+    await user.click(screen.getByRole("button", { name: "风险大" }));
+    first.unmount();
+
+    renderWithSampleProvider(new Date(2026, 4, 22, 9, 0));
+
+    expect(await screen.findByText("8:30 成功")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /删除宁德时代/ }).length).toBeGreaterThanOrEqual(1);
   });
 
   it("records a detailed real trade log for a recommended stock", async () => {

@@ -43,6 +43,21 @@ function createProviderFromFeeds(feeds: Record<string, unknown>) {
 }
 
 describe("createRemoteJsonDataProvider", () => {
+  it("returns remote trading status when the feed marks the date as closed", async () => {
+    const provider = createProviderFromFeed({
+      tradeDate: "2026-05-25",
+      tradingStatus: {
+        isTradingDay: false,
+        message: "交易所休市"
+      }
+    });
+
+    const result = await provider.fetchTradingStatus?.("2026-05-25");
+
+    expect(result?.status).toBe("SUCCESS");
+    expect(result?.status === "SUCCESS" ? result.input.isTradingDay : true).toBe(false);
+  });
+
   it("returns the premarket input from the GitHub JSON feed", async () => {
     const provider = createProviderFromFeed({
       tradeDate: "2026-05-25",
