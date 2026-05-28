@@ -9,6 +9,9 @@ on:
         default: "auction"
         type: choice
         options:
+          - overnight
+          - sentiment
+          - premarket-scan
           - premarket
           - auction
       source:
@@ -20,6 +23,9 @@ on:
           - eastmoney
           - fixture
   schedule:
+    - cron: "0 20 * * 0-4"
+    - cron: "0 22 * * 0-4"
+    - cron: "0 0 * * 1-5"
     - cron: "30 0 * * 1-5"
     - cron: "25 1 * * 1-5"
 
@@ -43,7 +49,13 @@ jobs:
           STAGE="${{ github.event.inputs.stage }}"
           SOURCE="${{ github.event.inputs.source }}"
           if [ -z "$STAGE" ]; then
-            if [ "${{ github.event.schedule }}" = "30 0 * * 1-5" ]; then
+            if [ "${{ github.event.schedule }}" = "0 20 * * 0-4" ]; then
+              STAGE="overnight"
+            elif [ "${{ github.event.schedule }}" = "0 22 * * 0-4" ]; then
+              STAGE="sentiment"
+            elif [ "${{ github.event.schedule }}" = "0 0 * * 1-5" ]; then
+              STAGE="premarket-scan"
+            elif [ "${{ github.event.schedule }}" = "30 0 * * 1-5" ]; then
               STAGE="premarket"
             else
               STAGE="auction"
@@ -58,7 +70,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/today.json data/history
+          git add data/today.json data/history data/cache
           if git diff --cached --quiet; then
             echo "No data changes to commit."
           else

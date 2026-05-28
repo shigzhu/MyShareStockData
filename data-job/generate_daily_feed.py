@@ -9,6 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from adapters.eastmoney import EastMoneyAdapter
 
 BEIJING_TZ = timezone(timedelta(hours=8))
+BATCH_STAGES = {"overnight", "sentiment", "premarket-scan"}
+PUBLISH_STAGES = {"premarket", "auction"}
+ALL_STAGES = sorted(BATCH_STAGES | PUBLISH_STAGES)
 
 
 def beijing_today(now_utc: str | None = None) -> str:
@@ -36,15 +39,19 @@ def is_late_auction_refresh(args: argparse.Namespace) -> bool:
     return args.stage == "auction" and (now.hour, now.minute) > (9, 35)
 
 
+def is_batch_stage(stage: str) -> bool:
+    return stage in BATCH_STAGES
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate the GitHub-hosted A-share recommendation feed.")
     parser.add_argument("--trade-date", help="Trade date in YYYY-MM-DD format. Defaults to Asia/Shanghai date.")
     parser.add_argument("--now-utc", help="UTC timestamp used only by tests to verify Asia/Shanghai date handling.")
     parser.add_argument(
         "--stage",
-        choices=["premarket", "auction"],
+        choices=ALL_STAGES,
         default="auction",
-        help="premarket writes only 8:30 data; auction also writes 9:25 data.",
+        help="Batch stages write cache; premarket publishes 8:30; auction publishes 9:25.",
     )
     parser.add_argument(
         "--fixture",
@@ -70,6 +77,61 @@ def load_fixture(path: Path, trade_date: str) -> dict:
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["tradeDate"] = trade_date
     return payload
+
+
+def load_cache(output_dir: Path, trade_date: str) -> dict:
+    cache_path = output_dir / "cache" / f"{trade_date}.json"
+    if not cache_path.exists():
+        return {}
+
+    try:
+        cache = json.loads(cache_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+    if cache.get("tradeDate") != trade_date:
+        return {}
+
+    return cache
+
+
+def write_cache(
+    output_dir: Path,
+    trade_date: str,
+    stage: str,
+    trading_day_input: dict,
+    source: dict,
+    generated_at: str,
+    existing_cache: dict | None = None,
+) -> None:
+    cache_dir = output_dir / "cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    existing_cache = existing_cache or {}
+    stages = {
+        **existing_cache.get("stages", {}),
+        stage: {
+            "generatedAt": generated_at,
+            "sourceMode": source.get("mode"),
+            "description": source.get("description"),
+        },
+    }
+    cache = {
+        "schemaVersion": 1,
+        "tradeDate": trade_date,
+        "generatedAt": generated_at,
+        "source": source,
+        "stages": stages,
+        "preMarketInput": deepcopy(trading_day_input),
+    }
+    (cache_dir / f"{trade_date}.json").write_text(json.dumps(cache, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def source_with_pipeline_metadata(source: dict, stage: str, cache: dict) -> dict:
+    return {
+        **source,
+        "pipelineStage": stage,
+        "cacheStages": sorted((cache.get("stages") or {}).keys()),
+    }
 
 
 def load_trading_day_input(args: argparse.Namespace, existing_feed: dict) -> tuple[dict, dict]:
@@ -201,8 +263,19 @@ def main() -> None:
     args = parse_args()
     output_dir = Path(args.output_dir)
     existing_feed = load_existing_feed(output_dir, args.trade_date)
+    existing_cache = load_cache(output_dir, args.trade_date)
     trading_day_input, source = load_trading_day_input(args, existing_feed)
-    feed = build_feed(args.trade_date, trading_day_input, args.stage, source, beijing_timestamp(args.now_utc), existing_feed)
+    generated_at = beijing_timestamp(args.now_utc)
+
+    if is_batch_stage(args.stage):
+        write_cache(output_dir, args.trade_date, args.stage, trading_day_input, source, generated_at, existing_cache)
+        return
+
+    if existing_cache.get("preMarketInput") and args.stage == "premarket":
+        trading_day_input = existing_cache["preMarketInput"]
+
+    source = source_with_pipeline_metadata(source, args.stage, existing_cache)
+    feed = build_feed(args.trade_date, trading_day_input, args.stage, source, generated_at, existing_feed)
     write_feed(feed, output_dir)
 
 

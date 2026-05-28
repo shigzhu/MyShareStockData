@@ -12,6 +12,93 @@ FIXTURE = ROOT / "data-job" / "fixtures" / "sample_trading_day.json"
 
 
 class GenerateDailyFeedTest(unittest.TestCase):
+    def test_batch_stages_write_cache_without_publishing_today_feed(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            for stage in ["overnight", "sentiment", "premarket-scan"]:
+                subprocess.run(
+                    [
+                        sys.executable,
+                        str(SCRIPT),
+                        "--trade-date",
+                        "2026-05-25",
+                        "--stage",
+                        stage,
+                        "--source",
+                        "fixture",
+                        "--fixture",
+                        str(FIXTURE),
+                        "--output-dir",
+                        str(output_dir),
+                    ],
+                    check=True,
+                )
+
+            cache = json.loads((output_dir / "cache" / "2026-05-25.json").read_text(encoding="utf-8"))
+
+        self.assertFalse((output_dir / "today.json").exists())
+        self.assertEqual(cache["tradeDate"], "2026-05-25")
+        self.assertIn("overnight", cache["stages"])
+        self.assertIn("sentiment", cache["stages"])
+        self.assertIn("premarket-scan", cache["stages"])
+        self.assertIn("preMarketInput", cache)
+
+    def test_premarket_stage_publishes_from_existing_batch_cache(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "overnight",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "premarket",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(today["tradeDate"], "2026-05-25")
+        self.assertEqual(today["source"]["pipelineStage"], "premarket")
+        self.assertIn("overnight", today["source"]["cacheStages"])
+        self.assertEqual(today["preMarketInput"]["tradeDate"], "2026-05-25")
+
+    def test_workflow_contains_staged_beijing_time_schedule(self):
+        workflow = (ROOT / ".github" / "workflows" / "daily-stock-data.yml").read_text(encoding="utf-8")
+
+        self.assertIn('cron: "0 20 * * 0-4"', workflow)
+        self.assertIn('cron: "0 22 * * 0-4"', workflow)
+        self.assertIn('cron: "0 0 * * 1-5"', workflow)
+        self.assertIn('cron: "30 0 * * 1-5"', workflow)
+        self.assertIn('cron: "25 1 * * 1-5"', workflow)
+
     def test_defaults_to_current_beijing_calendar_date(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir) / "data"
