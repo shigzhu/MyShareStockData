@@ -21,8 +21,17 @@ data/history/YYYY-MM-DD.json
 当前脚本默认使用东方财富公开行情接口生成部分真实数据，`source.mode` 会标记为 `REAL_PARTIAL`。
 未显式传入 `--trade-date` 时，脚本会按运行当刻的北京时间自然日生成 `tradeDate`，例如北京时间 2026-05-27 00:30 运行就写入 `2026-05-27`。
 
+现在的 GitHub Actions 分批执行：
+
+- 04:00 北京时间：`overnight`，写入 `data/cache/YYYY-MM-DD.json`，准备昨日收盘和慢变量缓存。
+- 06:00 北京时间：`sentiment`，写入同一缓存文件，预留讨论热度批次。
+- 08:00 北京时间：`premarket-scan`，写入同一缓存文件，预扫题材和候选池。
+- 08:30 北京时间：`premarket`，优先使用缓存汇总并发布 `today.json` 与 `history/YYYY-MM-DD.json`。
+- 09:25 北京时间：`auction`，只对 8:30 池子做竞价确认并发布更新。
+
 目前已经覆盖：
 
+- 04:00/06:00/08:00：使用现有公开源或 fixture 先写缓存，降低 8:30 一次性抓取压力。
 - 8:30：市场涨跌家数、热门概念、概念内个股行情、成交额、换手率、涨跌幅、代码名称匹配。
 - 9:25：只对 8:30 池子拉取公开行情快照，派生竞价确认字段。
 
@@ -40,6 +49,16 @@ data/history/YYYY-MM-DD.json
 python data-job/generate_daily_feed.py --stage premarket --source eastmoney --output-dir data
 python data-job/generate_daily_feed.py --stage auction --source eastmoney --output-dir data
 python -m unittest discover -s data-job/tests
+```
+
+分批验证：
+
+```powershell
+python data-job/generate_daily_feed.py --stage overnight --source eastmoney --output-dir data
+python data-job/generate_daily_feed.py --stage sentiment --source eastmoney --output-dir data
+python data-job/generate_daily_feed.py --stage premarket-scan --source eastmoney --output-dir data
+python data-job/generate_daily_feed.py --stage premarket --source eastmoney --output-dir data
+python data-job/generate_daily_feed.py --stage auction --source eastmoney --output-dir data
 ```
 
 测试或离线验证时可使用 fixture：

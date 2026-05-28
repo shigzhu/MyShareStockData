@@ -43,6 +43,8 @@
 
 - 短期采用低成本方案：GitHub Actions 定时生成 JSON，GitHub Pages 托管，APK 每天按北京时间读取远程 JSON。
 - 手机安装 APK 后不需要每天手动进入 GitHub 启动；只要 GitHub Actions 定时任务和 Pages 正常，APK 打开时会自动读取当天数据并补偿刷新。
+- 数据任务拆成 5 个北京时间阶段：04:00 `overnight` 写慢变量缓存，06:00 `sentiment` 写热度缓存，08:00 `premarket-scan` 写题材和候选池缓存，08:30 `premarket` 汇总发布准备名单，09:25 `auction` 只对 8:30 池子做竞价确认。
+- 04:00/06:00/08:00 批次写入 `data/cache/YYYY-MM-DD.json`，8:30 再发布 `data/today.json` 和 `data/history/YYYY-MM-DD.json`，避免 8:30 从零抓全量数据。
 - 仍需持续完善的数据源适配器包括：AkShare、Tushare、东方财富行情、讨论热度、9:25 集合竞价。
 - 还应优先补充：交易所公开信息/龙虎榜/融资融券、巨潮资讯公告风险、真实 Level-2 或稳定竞价数据、雪球/淘股吧/财联社等舆情源、复盘胜率数据闭环。
 
