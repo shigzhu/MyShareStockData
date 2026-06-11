@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-06-12",
-  "generatedAt": "2026-06-12T06:05:52+08:00",
+  "generatedAt": "2026-06-12T07:23:31+08:00",
   "source": {
     "mode": "REAL_PARTIAL",
     "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。",
@@ -18,6 +18,11 @@
   "stages": {
     "overnight": {
       "generatedAt": "2026-06-12T06:05:52+08:00",
+      "sourceMode": "REAL_PARTIAL",
+      "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。"
+    },
+    "sentiment": {
+      "generatedAt": "2026-06-12T07:23:31+08:00",
       "sourceMode": "REAL_PARTIAL",
       "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。"
     }
@@ -1276,7 +1281,7 @@
         "name": "高带宽内存",
         "recentStrengthScore": 42,
         "moneyMakingScore": 53,
-        "turnoverHeatScore": 70,
+        "turnoverHeatScore": 68,
         "continuationScore": 53,
         "stocks": [
           {
