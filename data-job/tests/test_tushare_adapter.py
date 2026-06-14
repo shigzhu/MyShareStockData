@@ -47,6 +47,42 @@ class TushareAdapterTest(unittest.TestCase):
         self.assertEqual(daily_basic["300750"]["turnoverRatePct"], 2.7)
         self.assertEqual(daily_basic["300750"]["marketCapRankScore"], 100)
 
+    def test_retries_tushare_request_three_times_when_transient_errors_happen(self):
+        calls = []
+
+        def client(payload):
+            calls.append(payload)
+            if len(calls) < 3:
+                raise RuntimeError("temporary tushare timeout")
+            return {
+                "code": 0,
+                "data": {
+                    "fields": ["cal_date", "is_open"],
+                    "items": [["20260525", 1]],
+                },
+            }
+
+        adapter = TushareAdapter(token="token", http_post_json=client)
+
+        status = adapter.fetch_trading_status("2026-05-25")
+
+        self.assertEqual(status["isTradingDay"], True)
+        self.assertEqual(len(calls), 3)
+
+    def test_raises_after_three_failed_tushare_attempts(self):
+        calls = []
+
+        def client(payload):
+            calls.append(payload)
+            raise RuntimeError("temporary tushare timeout")
+
+        adapter = TushareAdapter(token="token", http_post_json=client)
+
+        with self.assertRaisesRegex(RuntimeError, "temporary tushare timeout"):
+            adapter.fetch_trading_status("2026-05-25")
+
+        self.assertEqual(len(calls), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

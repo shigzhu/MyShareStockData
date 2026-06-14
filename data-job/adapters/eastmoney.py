@@ -8,6 +8,8 @@ from typing import Callable
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from adapters.retry import retry_call
+
 
 EASTMONEY_CLIST_URLS = [
     "https://push2delay.eastmoney.com/api/qt/clist/get",
@@ -125,7 +127,7 @@ class EastMoneyAdapter:
         last_error: Exception | None = None
         for base_url in urls:
             try:
-                return self.http_get_json(f"{base_url}?{urlencode(params)}")
+                return retry_call(lambda: self.http_get_json(f"{base_url}?{urlencode(params)}"), sleep_seconds=0.2)
             except Exception as error:
                 last_error = error
         raise EastMoneyDataError(str(last_error))

@@ -4,6 +4,8 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
+from adapters.retry import retry_call
+
 
 def _iter_stocks(trading_day_input: dict):
     for theme in trading_day_input.get("themes", []):
@@ -12,7 +14,7 @@ def _iter_stocks(trading_day_input: dict):
 
 
 def apply_discussion_heat_file(trading_day_input: dict, path: Path) -> dict:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(retry_call(lambda: path.read_text(encoding="utf-8"), sleep_seconds=0.2))
     by_code = {str(item.get("code")): item for item in payload.get("stocks", []) if item.get("code")}
     enriched = deepcopy(trading_day_input)
 

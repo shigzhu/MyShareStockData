@@ -123,13 +123,49 @@ class GenerateDailyFeedTest(unittest.TestCase):
     def test_workflow_contains_staged_beijing_time_schedule(self):
         workflow = (ROOT / ".github" / "workflows" / "daily-stock-data.yml").read_text(encoding="utf-8")
 
-        self.assertIn('cron: "0 20 * * 0-4"', workflow)
-        self.assertIn('cron: "0 22 * * 0-4"', workflow)
-        self.assertIn('cron: "0 0 * * 1-5"', workflow)
-        self.assertIn('cron: "30 0 * * 1-5"', workflow)
+        self.assertIn('cron: "17 20 * * 0-4"', workflow)
+        self.assertIn('cron: "17 22 * * 0-4"', workflow)
+        self.assertIn('cron: "17 0 * * 1-5"', workflow)
+        self.assertIn('cron: "37 0 * * 1-5"', workflow)
         self.assertIn('cron: "25 1 * * 1-5"', workflow)
+        self.assertIn('cron: "32 1 * * 1-5"', workflow)
+        self.assertIn('STAGE="premarket"', workflow)
+        self.assertIn('STAGE="premarket-scan"', workflow)
+        self.assertIn("--next-trading-date", workflow)
+        self.assertIn('[ "$STAGE" = "premarket-scan" ]', workflow)
         self.assertIn("git add -A data", workflow)
+        self.assertIn("for attempt in 1 2 3", workflow)
+        self.assertIn("git push", workflow)
         self.assertNotIn("git add data/today.json data/history data/cache", workflow)
+
+    def test_next_trading_date_option_targets_monday_from_sunday_evening_batch(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--now-utc",
+                    "2026-05-24T10:00:00Z",
+                    "--next-trading-date",
+                    "--stage",
+                    "overnight",
+                    "--source",
+                    "fixture",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                check=True,
+            )
+
+            cache = json.loads((output_dir / "cache" / "2026-05-25.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(cache["tradeDate"], "2026-05-25")
+        self.assertEqual(cache["generatedAt"], "2026-05-24T18:00:00+08:00")
+        self.assertEqual(cache["preMarketInput"]["tradeDate"], "2026-05-25")
 
     def test_defaults_to_current_beijing_calendar_date(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -329,7 +365,10 @@ class GenerateDailyFeedTest(unittest.TestCase):
 
         self.assertEqual(today["source"]["mode"], "REAL_PARTIAL_AUCTION_MISSING")
         self.assertEqual(today["preMarketInput"]["dataCompleteness"], "FULL")
-        self.assertNotIn("auctionInput", today)
+        self.assertIn("auctionInput", today)
+        self.assertEqual(today["auctionInput"]["dataCompleteness"], "MISSING")
+        self.assertEqual(today["auctionInput"]["auctionByCode"], {})
+        self.assertEqual(today["auctionInput"]["tradeDate"], "2026-05-25")
         self.assertIn("auctionFailureReason", today["source"])
 
     def test_late_auction_run_preserves_existing_auction_input(self):
@@ -423,7 +462,42 @@ class GenerateDailyFeedTest(unittest.TestCase):
 
         self.assertEqual(today["source"]["mode"], "AUCTION_WINDOW_MISSED")
         self.assertIn("auctionFailureReason", today["source"])
+        self.assertIn("auctionInput", today)
+        self.assertEqual(today["auctionInput"]["dataCompleteness"], "MISSING")
+        self.assertEqual(today["auctionInput"]["auctionByCode"], {})
+        self.assertEqual(today["auctionInput"]["tradeDate"], "2026-05-25")
+
+    def test_late_auction_run_without_premarket_pool_does_not_invent_auction_input(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "data"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--trade-date",
+                    "2026-05-25",
+                    "--stage",
+                    "auction",
+                    "--source",
+                    "eastmoney",
+                    "--fixture",
+                    str(FIXTURE),
+                    "--output-dir",
+                    str(output_dir),
+                    "--now-utc",
+                    "2026-05-25T07:00:00Z",
+                    "--eastmoney-theme-count",
+                    "0",
+                ],
+                check=True,
+            )
+
+            today = json.loads((output_dir / "today.json").read_text(encoding="utf-8"))
+
         self.assertNotIn("auctionInput", today)
+        self.assertEqual(today["source"]["mode"], "AUCTION_WINDOW_MISSED")
+        self.assertIn("fallbackReason", today["source"])
 
     def test_premarket_stage_does_not_write_auction_input(self):
         with tempfile.TemporaryDirectory() as temp_dir:
