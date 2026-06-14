@@ -16,7 +16,7 @@ function withHotMoney(overrides: Partial<StockMetrics["hotMoney"]>): StockMetric
 }
 
 describe("scoreHotMoney", () => {
-  it("uses 8:30 weights that emphasize theme, boards, and seat signals", () => {
+  it("uses 24:00 weights that emphasize theme, boards, and seat signals", () => {
     const result = scoreHotMoney(baseStock, "PREMARKET_0830");
 
     expect(result.total).toBeGreaterThanOrEqual(14);
@@ -79,4 +79,13 @@ describe("scoreHotMoney", () => {
     expect(result.total).toBe(0);
     expect(result.risks).toContain("游资过热或接力末端，剔除");
   });
+
+  it("allows two recent limit-up days but rejects the third", () => {
+    const twoBoards = scoreHotMoney({ ...baseStock, consecutiveLimitUps: 2 }, "PREMARKET_0830");
+    const threeBoards = scoreHotMoney({ ...baseStock, consecutiveLimitUps: 3 }, "PREMARKET_0830");
+
+    expect(twoBoards.overheated).toBe(false);
+    expect(threeBoards.overheated).toBe(true);
+  });
 });
+

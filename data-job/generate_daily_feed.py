@@ -24,6 +24,16 @@ def beijing_today(now_utc: str | None = None) -> str:
     return beijing_now(now_utc).date().isoformat()
 
 
+def next_trading_date(now_utc: str | None = None) -> str:
+    current = beijing_now(now_utc).date() + timedelta(days=1)
+    for _ in range(370):
+        trade_date = current.isoformat()
+        if static_trading_status(trade_date)["isTradingDay"]:
+            return trade_date
+        current += timedelta(days=1)
+    raise RuntimeError("无法找到下一个交易日")
+
+
 def beijing_timestamp(now_utc: str | None = None) -> str:
     return beijing_now(now_utc).replace(microsecond=0).isoformat()
 
@@ -56,12 +66,17 @@ def is_batch_stage(stage: str) -> bool:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate the GitHub-hosted A-share recommendation feed.")
     parser.add_argument("--trade-date", help="Trade date in YYYY-MM-DD format. Defaults to Asia/Shanghai date.")
+    parser.add_argument(
+        "--next-trading-date",
+        action="store_true",
+        help="Use the next A-share trading date. Intended for previous-evening 18:00 and 22:00 batch jobs.",
+    )
     parser.add_argument("--now-utc", help="UTC timestamp used only by tests to verify Asia/Shanghai date handling.")
     parser.add_argument(
         "--stage",
         choices=ALL_STAGES,
         default="auction",
-        help="Batch stages write cache; premarket publishes 8:30; auction publishes 9:25.",
+        help="Batch stages write cache; premarket publishes 24:00; auction publishes 9:25.",
     )
     parser.add_argument(
         "--fixture",
@@ -91,7 +106,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default="data", help="Output directory for today.json and history files.")
     args = parser.parse_args()
     if not args.trade_date:
-        args.trade_date = beijing_today(args.now_utc)
+        args.trade_date = next_trading_date(args.now_utc) if args.next_trading_date else beijing_today(args.now_utc)
     return args
 
 
@@ -192,9 +207,19 @@ def source_with_missed_auction_metadata(source: dict) -> dict:
     return {
         **source,
         "mode": "AUCTION_WINDOW_MISSED",
-        "description": "当前已过9:35且不存在有效9:25竞价确认，保留8:30准备名单，不用盘中行情补写竞价。",
+        "description": "当前已过9:35且不存在有效9:25竞价确认，保留24:00准备名单，不用盘中行情补写竞价。",
         "auctionFailureReason": "错过9:25有效竞价采集窗口",
     }
+
+
+def missing_auction_input_from_pre_market(pre_market_input: dict | None) -> dict | None:
+    if not pre_market_input:
+        return None
+
+    auction_input = deepcopy(pre_market_input)
+    auction_input["dataCompleteness"] = "MISSING"
+    auction_input["auctionByCode"] = {}
+    return auction_input
 
 
 def stock_codes_from_input(trading_day_input: dict) -> list[str]:
@@ -315,7 +340,7 @@ def load_trading_day_input(args: argparse.Namespace, existing_feed: dict) -> tup
             return pre_market_input, {
                 **source,
                 "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
-                "description": "东方财富公开行情已更新8:30准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
+                "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
             }
 
         if args.stage == "auction":
@@ -330,7 +355,7 @@ def load_trading_day_input(args: argparse.Namespace, existing_feed: dict) -> tup
         if args.stage == "auction" and "preMarketInput" in existing_feed:
             return existing_feed["preMarketInput"], {
                 "mode": "REAL_PARTIAL_AUCTION_MISSING",
-                "description": "8:30准备名单已保留，但9:25竞价公开源拉取失败；APK 应显示9:25缺关键数据。",
+                "description": "24:00准备名单已保留，但9:25竞价公开源拉取失败；APK 应显示9:25缺关键数据。",
                 "providers": existing_feed.get("source", {}).get("providers", ["eastmoney_public_quote"]),
                 "limitations": existing_feed.get("source", {}).get("limitations", []),
                 "auctionFailureReason": str(error),
@@ -386,8 +411,15 @@ def build_feed(
         "preMarketInput": pre_market_input
     }
 
+    missing_auction_base = existing_feed.get("preMarketInput")
+    if source.get("mode") == "AUCTION_WINDOW_MISSED" and source.get("providers") != ["fixture"]:
+        missing_auction_base = missing_auction_base or pre_market_input
+    missing_auction_input = missing_auction_input_from_pre_market(missing_auction_base)
+
     if source.get("mode") == "REAL_PARTIAL_AUCTION_PRESERVED" and "auctionInput" in existing_feed:
         feed["auctionInput"] = existing_feed["auctionInput"]
+    elif stage == "auction" and source.get("mode") in {"REAL_PARTIAL_AUCTION_MISSING", "AUCTION_WINDOW_MISSED"} and missing_auction_input:
+        feed["auctionInput"] = missing_auction_input
     elif stage == "auction" and source.get("mode") not in {"REAL_PARTIAL_AUCTION_MISSING", "AUCTION_WINDOW_MISSED"}:
         feed["auctionInput"] = auction_input
     elif "auctionInput" in existing_feed:

@@ -12,21 +12,30 @@ function providerWith(result: DataProviderResult<TradingDayInput>): DataProvider
 }
 
 describe("runIntradayRefresh", () => {
-  it("keeps both intraday jobs pending before 8:30", async () => {
+  it("does not generate the next trade date plan before the Beijing date rolls over to 24:00", async () => {
     const state = await runIntradayRefresh({
-      now: new Date(2026, 4, 21, 8, 20),
-      provider: providerWith({ status: "SUCCESS", input: sampleTradingDay })
+      now: new Date("2026-05-20T15:50:00.000Z"),
+      provider: {
+        fetchPreMarketInput: async (tradeDate) => ({
+          status: "SUCCESS",
+          input: { ...sampleTradingDay, tradeDate }
+        }),
+        fetchAuctionInput: async (tradeDate) => ({
+          status: "SUCCESS",
+          input: { ...sampleTradingDay, tradeDate }
+        })
+      }
     });
 
-    expect(state.preMarket.status).toBe("PENDING");
-    expect(state.auction.status).toBe("PENDING");
-    expect(state.preMarket.result).toBeUndefined();
-    expect(state.auction.result).toBeUndefined();
+    expect(state.tradeDate).toBe("2026-05-20");
+    expect(state.preMarket.status).toBe("SUCCESS");
+    expect(state.preMarket.result?.tradeDate).toBe("2026-05-20");
+    expect(state.preMarket.result?.tradeDate).not.toBe("2026-05-21");
   });
 
-  it("runs the 8:30 preparation job when the app is opened after 8:30", async () => {
+  it("runs the 24:00 preparation job when the app is opened after midnight", async () => {
     const state = await runIntradayRefresh({
-      now: new Date(2026, 4, 21, 8, 35),
+      now: new Date(2026, 4, 21, 0, 5),
       provider: providerWith({ status: "SUCCESS", input: sampleTradingDay })
     });
 
@@ -36,7 +45,7 @@ describe("runIntradayRefresh", () => {
     expect(state.auction.status).toBe("PENDING");
   });
 
-  it("runs the 9:25 auction job after creating or reusing the 8:30 pool", async () => {
+  it("runs the 9:25 auction job after creating or reusing the 24:00 pool", async () => {
     const calls: string[] = [];
     const provider: DataProvider = {
       fetchPreMarketInput: async () => {
@@ -111,10 +120,10 @@ describe("runIntradayRefresh", () => {
     expect(state.preMarket.message).toBe("缺少量化字段");
   });
 
-  it("keeps 9:25 as not recommended instead of failed when the 8:30 pool is unavailable", async () => {
+  it("keeps 9:25 as not recommended instead of failed when the 24:00 pool is unavailable", async () => {
     const state = await runIntradayRefresh({
       now: new Date(2026, 4, 21, 9, 35),
-      provider: providerWith({ status: "MISSING_REQUIRED_DATA", message: "当天8:30数据尚未发布" })
+      provider: providerWith({ status: "MISSING_REQUIRED_DATA", message: "当天24:00数据尚未发布" })
     });
 
     expect(state.preMarket.status).toBe("MISSING_REQUIRED_DATA");

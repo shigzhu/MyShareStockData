@@ -47,7 +47,7 @@ export function confirmAuction(
     auction.gapPct <= thresholds.auction.idealGapPctMax
   ) {
     score += 10;
-    reasons.push("高开幅度处于3%-7%强而不过热区间");
+    reasons.push("高开幅度处于1%-7%强而不过热区间");
   } else {
     risks.push("高开幅度不在理想区间");
   }

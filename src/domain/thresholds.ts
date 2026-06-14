@@ -22,10 +22,10 @@ export const defaultThresholds: StrategyThresholds = {
     maxReturn20dPct: 45,
     maxDistanceFromMa5Pct: 9,
     maxDistanceFromMa10Pct: 15,
-    maxConsecutiveLimitUps: 1
+    maxConsecutiveLimitUps: 2
   },
   auction: {
-    idealGapPctMin: 3,
+    idealGapPctMin: 1,
     idealGapPctMax: 7,
     minAuctionTurnoverExpansionMultiple: 3,
     minAuctionTurnoverToYesterdayPct: 1

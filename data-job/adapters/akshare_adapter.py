@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from adapters.retry import retry_call
+
 
 class AkShareDataError(RuntimeError):
     pass
@@ -25,7 +27,7 @@ class AkShareAdapter:
         result = {}
         for code in codes:
             try:
-                frame = self.akshare.stock_financial_analysis_indicator(symbol=code)
+                frame = retry_call(lambda: self.akshare.stock_financial_analysis_indicator(symbol=code), sleep_seconds=0.2)
             except Exception as error:
                 raise AkShareDataError(str(error)) from error
 

@@ -151,7 +151,7 @@ export function createLocalReviewStore(storageKey = "a-share-review-learning-v1"
     exportTradeLogsCsv(): string {
       const rows = readState(storageKey).tradeLogs.map((entry) => [
         entry.recommendationTradeDate,
-        entry.stage === "PREMARKET_0830" ? "8:30" : "9:25",
+        entry.stage === "PREMARKET_0830" ? "24:00" : "9:25",
         entry.code,
         entry.name,
         entry.bought ? "已买" : "未买",

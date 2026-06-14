@@ -9,8 +9,8 @@ import type {
   TradingDayInput
 } from "./types";
 
-const PRE_MARKET_HOUR = 8;
-const PRE_MARKET_MINUTE = 30;
+const PRE_MARKET_HOUR = 0;
+const PRE_MARKET_MINUTE = 0;
 const AUCTION_HOUR = 9;
 const AUCTION_MINUTE = 25;
 
@@ -111,12 +111,12 @@ async function runAuctionJob(
   }
 
   if (!preMarket.result) {
-    const result = emptyPlan("AUCTION_0925", tradeDate, "8:30准备名单不可用，9:25不追票，保持空仓");
+    const result = emptyPlan("AUCTION_0925", tradeDate, "24:00准备名单不可用，9:25不追票，保持空仓");
     return {
       stage: "AUCTION_0925",
       tradeDate,
       status: "NOT_RECOMMENDED",
-      message: "8:30准备名单不可用，9:25不追票，保持空仓",
+      message: "24:00准备名单不可用，9:25不追票，保持空仓",
       result,
       updatedAt
     };
@@ -143,7 +143,7 @@ export async function runIntradayRefresh({
 }: RunIntradayRefreshOptions): Promise<IntradayRefreshState> {
   const tradeDate = formatBeijingDate(now);
   const updatedAt = formatBeijingDateTime(now);
-  let preMarket = pendingJob("PREMARKET_0830", tradeDate, "等待8:30生成准备名单");
+  let preMarket = pendingJob("PREMARKET_0830", tradeDate, "等待24:00生成准备名单");
   let auction = pendingJob("AUCTION_0925", tradeDate, "等待9:25集合竞价确认");
 
   if (provider.fetchTradingStatus) {

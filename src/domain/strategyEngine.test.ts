@@ -23,13 +23,13 @@ describe("generatePreMarketPlan", () => {
     expect(result.candidates).toHaveLength(0);
   });
 
-  it("marks the strongest 8:30 candidate as primary", () => {
+  it("marks the strongest 24:00 candidate as primary", () => {
     const result = generatePreMarketPlan(sampleTradingDay);
 
     expect(result.candidates[0].role).toBe("PRIMARY");
   });
 
-  it("caps cross-platform discussion heat at 15 percent of the 8:30 stock score", () => {
+  it("caps cross-platform discussion heat at 15 percent of the 24:00 stock score", () => {
     const normalHeat = generatePreMarketPlan(sampleTradingDay);
     const coldStock = normalHeat.candidates.find((candidate) => candidate.stock.code === "688256");
     const warmingStock = normalHeat.candidates.find((candidate) => candidate.stock.code === "300750");
@@ -41,7 +41,7 @@ describe("generatePreMarketPlan", () => {
     expect(coldStock?.heat.weightedScore).toBeLessThan(6);
   });
 
-  it("builds an 8:30 score from 25 trading, 20 hot-money, 20 quant, 15 discussion, 10 official, and 10 review points", () => {
+  it("builds an 24:00 score from 25 trading, 20 hot-money, 20 quant, 15 discussion, 10 official, and 10 review points", () => {
     const result = generatePreMarketPlan(sampleTradingDay);
     const candidate = result.candidates[0];
 
@@ -146,7 +146,29 @@ describe("generatePreMarketPlan", () => {
     expect(result.rejections.some((rejection) => rejection.reason.includes("高位舆情过热"))).toBe(true);
   });
 
-  it("keeps at least one 8:30 primary observation candidate when the market is tradable but strict filters remove all stocks", () => {
+  it("rejects limit-up leaders with more than two boards in the latest five trading days", () => {
+    const result = generatePreMarketPlan({
+      ...sampleTradingDay,
+      themes: sampleTradingDay.themes.map((theme) => ({
+        ...theme,
+        stocks: theme.stocks.map((stock) =>
+          stock.code === "300750"
+            ? {
+                ...stock,
+                consecutiveLimitUps: 3
+              }
+            : stock
+        )
+      }))
+    });
+
+    expect(result.candidates.some((candidate) => candidate.stock.code === "300750")).toBe(false);
+    expect(result.rejections.some((rejection) => rejection.code === "300750" && rejection.reason.includes("过热"))).toBe(
+      true
+    );
+  });
+
+  it("keeps three premarket observation candidates when the market is tradable but strict filters remove all stocks", () => {
     const result = generatePreMarketPlan({
       ...sampleTradingDay,
       themes: sampleTradingDay.themes.map((theme) => ({
@@ -160,7 +182,7 @@ describe("generatePreMarketPlan", () => {
     });
 
     expect(result.marketStatus).toBe("TRADABLE");
-    expect(result.candidates.length).toBeGreaterThanOrEqual(1);
+    expect(result.candidates.length).toBeGreaterThanOrEqual(3);
     expect(result.candidates[0].role).toBe("PRIMARY");
     expect(result.summary).toContain("保底");
     expect(result.candidates[0].risks.join(" ")).toContain("风险过滤未完全通过");
@@ -197,7 +219,7 @@ describe("generateAuctionPlan", () => {
     expect(result.candidates[0].role).toBe("PRIMARY");
     expect(result.candidates[0].stock.code).toBe("300750");
     expect(result.candidates.length).toBeGreaterThanOrEqual(3);
-    expect(result.candidates[1].role).toBe("BACKUP");
+    expect(result.candidates[1].role).toBe("CONFIRMED");
   });
 
   it("keeps 9:25 primary limited to confirmed candidates with hot-money eligibility", () => {
@@ -237,3 +259,4 @@ describe("generateAuctionPlan", () => {
     expect(result.candidates[0].hotMoney.eligibleForPrimary).toBe(true);
   });
 });
+

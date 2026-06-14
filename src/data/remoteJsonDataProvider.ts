@@ -20,6 +20,20 @@ class FeedHttpError extends Error {
   }
 }
 
+async function withRetry<T>(operation: () => Promise<T>, maxAttempts = 3): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("远程请求失败");
+}
+
 function joinFeedUrl(baseUrl: string, path: string, cacheKey: string) {
   return `${baseUrl.replace(/\/$/, "")}${path}?v=${encodeURIComponent(cacheKey)}`;
 }
@@ -41,11 +55,15 @@ function isRemoteTradingStatus(value: unknown): value is { isTradingDay: boolean
 }
 
 async function fetchFeed(baseUrl: string, fetcher: typeof fetch, path: string, cacheKey: string): Promise<RemoteFeed> {
-  const response = await fetcher(joinFeedUrl(baseUrl, path, cacheKey), { cache: "no-store" });
+  const response = await withRetry(async () => {
+    const currentResponse = await fetcher(joinFeedUrl(baseUrl, path, cacheKey), { cache: "no-store" });
 
-  if (!response.ok) {
-    throw new FeedHttpError(response.status);
-  }
+    if (!currentResponse.ok) {
+      throw new FeedHttpError(currentResponse.status);
+    }
+
+    return currentResponse;
+  });
 
   return (await response.json()) as RemoteFeed;
 }
@@ -121,7 +139,7 @@ async function fetchInputFromRemote(
             return {
               status: "SUCCESS",
               input: staleInput,
-              message: "今日远程数据尚未发布，使用最近一次8:30数据生成非实时观察名单"
+              message: "今日远程数据尚未发布，使用最近一次24:00数据生成非实时观察名单"
             };
           }
         }
@@ -197,7 +215,7 @@ export function createRemoteJsonDataProvider({
           fetcher,
           tradeDate,
           "preMarketInput",
-          "8:30关键数据缺失",
+          "24:00关键数据缺失",
           cacheKey()
         );
       } catch (error) {

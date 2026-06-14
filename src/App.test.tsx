@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+﻿import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -30,20 +30,20 @@ describe("App", () => {
     return render(<App today={today} dataProvider={sampleDataProvider} />);
   }
 
-  it("shows both 8:30 and 9:25 strategy sections after the 9:25 refresh", async () => {
+  it("shows both 24:00 and 9:25 strategy sections after the 9:25 refresh", async () => {
     renderWithSampleProvider(new Date(2026, 4, 21, 9, 26));
 
-    expect((await screen.findAllByText("8:30 准备名单")).length).toBeGreaterThanOrEqual(1);
+    expect((await screen.findAllByText("24:00 准备名单")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("9:25 竞价确认").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("首推").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("8:30 成功")).toBeInTheDocument();
+    expect(screen.getByText("24:00 成功")).toBeInTheDocument();
     expect(screen.getByText("9:25 成功")).toBeInTheDocument();
   });
 
-  it("runs the 8:30 compensation refresh when the app is opened at 8:35", async () => {
+  it("runs the 24:00 compensation refresh when the app is opened at 8:35", async () => {
     renderWithSampleProvider(new Date(2026, 4, 21, 8, 35));
 
-    expect(await screen.findByText("8:30 成功")).toBeInTheDocument();
+    expect(await screen.findByText("24:00 成功")).toBeInTheDocument();
     expect(screen.getByText("9:25 待更新")).toBeInTheDocument();
     expect(screen.getByText("今日首推")).toBeInTheDocument();
   });
@@ -51,7 +51,7 @@ describe("App", () => {
   it("runs both compensation refresh jobs when the app is opened at 9:26", async () => {
     renderWithSampleProvider(new Date(2026, 4, 21, 9, 26));
 
-    expect(await screen.findByText("8:30 成功")).toBeInTheDocument();
+    expect(await screen.findByText("24:00 成功")).toBeInTheDocument();
     expect(screen.getByText("9:25 成功")).toBeInTheDocument();
     expect(screen.getAllByText("今日首推").length).toBeGreaterThanOrEqual(1);
   });
@@ -61,7 +61,7 @@ describe("App", () => {
       <App today={new Date(2026, 4, 21, 8, 35)} dataProvider={providerWith("FAILED", "行情接口超时")} />
     );
 
-    expect(await screen.findByText("8:30 失败")).toBeInTheDocument();
+    expect(await screen.findByText("24:00 失败")).toBeInTheDocument();
     expect(screen.getByText("行情接口超时")).toBeInTheDocument();
     failed.unmount();
 
@@ -69,7 +69,7 @@ describe("App", () => {
       <App today={new Date(2026, 4, 21, 8, 35)} dataProvider={providerWith("MISSING_REQUIRED_DATA", "缺少量化字段")} />
     );
 
-    expect(await screen.findByText("8:30 缺关键数据")).toBeInTheDocument();
+    expect(await screen.findByText("24:00 缺关键数据")).toBeInTheDocument();
     expect(screen.getByText("缺少量化字段")).toBeInTheDocument();
     missing.unmount();
 
@@ -89,14 +89,14 @@ describe("App", () => {
 
     render(<App today={new Date(2026, 4, 21, 8, 35)} dataProvider={emptyProvider} />);
 
-    expect(await screen.findByText("8:30 不推荐")).toBeInTheDocument();
+    expect(await screen.findByText("24:00 不推荐")).toBeInTheDocument();
   });
 
-  it("shows a stale 8:30 observation plan instead of a hard failure when today's feed is not published", async () => {
+  it("shows a stale 24:00 observation plan instead of a hard failure when today's feed is not published", async () => {
     const staleProvider: DataProvider = {
       fetchPreMarketInput: async (tradeDate) => ({
         status: "SUCCESS",
-        message: "今日远程数据尚未发布，使用最近一次8:30数据生成非实时观察名单",
+        message: "今日远程数据尚未发布，使用最近一次24:00数据生成非实时观察名单",
         input: {
           ...sampleTradingDay,
           tradeDate,
@@ -111,7 +111,7 @@ describe("App", () => {
 
     render(<App today={new Date(2026, 4, 28, 8, 35)} dataProvider={staleProvider} />);
 
-    expect(await screen.findByText("8:30 成功")).toBeInTheDocument();
+    expect(await screen.findByText("24:00 成功")).toBeInTheDocument();
     expect(screen.getByText("今日首推")).toBeInTheDocument();
     expect(screen.getByText("MISSING")).toBeInTheDocument();
   });
@@ -126,7 +126,7 @@ describe("App", () => {
     try {
       render(<App today={new Date(2026, 4, 21, 8, 35)} dataProvider={providerWith("FAILED", "网络不可用")} />);
 
-      expect(await screen.findByText("8:30 失败")).toBeInTheDocument();
+      expect(await screen.findByText("24:00 失败")).toBeInTheDocument();
       expect(screen.getByText("网络不可用")).toBeInTheDocument();
     } finally {
       String.prototype.replaceAll = originalReplaceAll;
@@ -142,11 +142,30 @@ describe("App", () => {
     expect(screen.getAllByText("2026-05-21").length).toBeGreaterThanOrEqual(1);
   });
 
+  it("renders one history section and merges multiple trade dates under the same month and week", async () => {
+    localStorage.clear();
+    const first = renderWithSampleProvider(new Date(2026, 4, 28, 9, 0));
+
+    expect(await screen.findByText("24:00 成功")).toBeInTheDocument();
+    first.unmount();
+
+    const { container } = renderWithSampleProvider(new Date(2026, 4, 29, 9, 0));
+
+    expect(await screen.findByText("2026-05-29")).toBeInTheDocument();
+    const history = container.querySelector(".history");
+    expect(history).not.toBeNull();
+    expect(screen.getAllByText("历史推荐")).toHaveLength(1);
+    expect(within(history as HTMLElement).getAllByText("2026年05月")).toHaveLength(1);
+    expect(within(history as HTMLElement).getAllByText("第5周")).toHaveLength(1);
+    expect(within(history as HTMLElement).getAllByText("2026-05-28")).toHaveLength(1);
+    expect(within(history as HTMLElement).getAllByText("2026-05-29")).toHaveLength(1);
+  });
+
   it("records a delete reason and hides the recommendation", async () => {
     const user = userEvent.setup();
     renderWithSampleProvider(new Date(2026, 4, 21, 9, 0));
 
-    await screen.findByText("8:30 成功");
+    await screen.findByText("24:00 成功");
     await user.click(screen.getAllByRole("button", { name: /删除/ })[0]);
     await user.click(screen.getByRole("button", { name: "风险大" }));
 
@@ -160,7 +179,7 @@ describe("App", () => {
     const { container } = render(<App dataProvider={sampleDataProvider} />);
 
     await flushRefresh();
-    expect(screen.getByText("8:30 成功")).toBeInTheDocument();
+    expect(screen.getByText("24:00 成功")).toBeInTheDocument();
 
     vi.setSystemTime(new Date(2026, 4, 24, 9, 0));
     act(() => {
@@ -171,7 +190,7 @@ describe("App", () => {
     expect(screen.getByText("今日未开市，好好休息！")).toBeInTheDocument();
     expect(screen.queryByText("今日首推")).not.toBeInTheDocument();
     expect(screen.getByText("历史推荐")).toBeInTheDocument();
-    expect(screen.getByText("8:30 准备名单")).toBeInTheDocument();
+    expect(screen.getByText("24:00 准备名单")).toBeInTheDocument();
     expect(screen.getAllByText("2026-05-21").length).toBeGreaterThanOrEqual(1);
     expect(Array.from(container.querySelectorAll<HTMLDetailsElement>(".history details")).every((item) => !item.open)).toBe(true);
   });
@@ -189,7 +208,7 @@ describe("App", () => {
     render(<App today={new Date(2026, 6, 15, 9, 0)} dataProvider={provider} />);
 
     expect(await screen.findByText("今日未开市，好好休息！")).toBeInTheDocument();
-    expect(screen.queryByText("8:30 成功")).not.toBeInTheDocument();
+    expect(screen.queryByText("24:00 成功")).not.toBeInTheDocument();
   });
 
   it("uses stock names that match their codes", async () => {
@@ -219,7 +238,7 @@ describe("App", () => {
     expect(screen.getAllByText("题材热点与政策催化匹配").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("does not show the closed-market rest message on a normal trading day before 8:30", () => {
+  it("does not show the closed-market rest message on a normal trading day before 24:00", () => {
     renderWithSampleProvider(new Date(2026, 4, 22, 9, 0));
 
     expect(screen.queryByText("今日未开市，好好休息！")).not.toBeInTheDocument();
@@ -271,7 +290,7 @@ describe("App", () => {
     const user = userEvent.setup();
     const first = renderWithSampleProvider(new Date(2026, 4, 21, 9, 0));
 
-    await screen.findByText("8:30 成功");
+    await screen.findByText("24:00 成功");
     await user.click(screen.getAllByRole("button", { name: /删除/ })[0]);
     await user.click(screen.getByRole("button", { name: "风险大" }));
     first.unmount();
@@ -286,14 +305,14 @@ describe("App", () => {
     const user = userEvent.setup();
     const first = renderWithSampleProvider(new Date(2026, 4, 21, 9, 0));
 
-    await screen.findByText("8:30 成功");
+    await screen.findByText("24:00 成功");
     await user.click(screen.getAllByRole("button", { name: /删除宁德时代/ })[0]);
     await user.click(screen.getByRole("button", { name: "风险大" }));
     first.unmount();
 
     renderWithSampleProvider(new Date(2026, 4, 22, 9, 0));
 
-    expect(await screen.findByText("8:30 成功")).toBeInTheDocument();
+    expect(await screen.findByText("24:00 成功")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /删除宁德时代/ }).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -349,3 +368,4 @@ describe("App", () => {
     expect((screen.getByLabelText("CSV导出内容") as HTMLTextAreaElement).value).toContain("推荐日期,阶段,代码,名称");
   });
 });
+

@@ -219,4 +219,50 @@ describe("createRemoteJsonDataProvider", () => {
     expect(result.status).toBe("FAILED");
     expect(result.message).toContain("远程数据加载失败");
   });
+
+  it("retries the remote feed three times before reporting failure", async () => {
+    const urls: string[] = [];
+    const provider = createRemoteJsonDataProvider({
+      baseUrl: "https://example.test/feed",
+      cacheKey: () => "retry",
+      fetcher: async (url) => {
+        urls.push(String(url));
+        throw new Error("temporary network down");
+      }
+    });
+
+    const result = await provider.fetchPreMarketInput("2026-05-25");
+
+    expect(result.status).toBe("FAILED");
+    expect(urls).toHaveLength(3);
+    expect(urls.every((url) => url === "https://example.test/feed/data/today.json?v=retry")).toBe(true);
+  });
+
+  it("returns remote feed data when a retry succeeds", async () => {
+    let attempts = 0;
+    const provider = createRemoteJsonDataProvider({
+      baseUrl: "https://example.test/feed",
+      cacheKey: () => "retry",
+      fetcher: async () => {
+        attempts += 1;
+        if (attempts < 3) {
+          throw new Error("temporary network down");
+        }
+
+        return jsonResponse({
+          tradeDate: "2026-05-25",
+          preMarketInput: {
+            ...sampleTradingDay,
+            tradeDate: "2026-05-25",
+            dataCompleteness: "FULL"
+          }
+        });
+      }
+    });
+
+    const result = await provider.fetchPreMarketInput("2026-05-25");
+
+    expect(result.status).toBe("SUCCESS");
+    expect(attempts).toBe(3);
+  });
 });

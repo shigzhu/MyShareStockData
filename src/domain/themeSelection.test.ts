@@ -131,4 +131,25 @@ describe("selectTradableThemes", () => {
     expect(result.selected).toHaveLength(0);
     expect(result.rejections[0].reason).toContain("人气龙头过热");
   });
+
+  it("allows leaders with two recent limit-up days but rejects leaders above two", () => {
+    const result = selectTradableThemes(
+      [
+        theme({
+          id: "two",
+          stocks: [stock({ code: "300002", consecutiveLimitUps: 2, attentionScore: 98 })]
+        }),
+        theme({
+          id: "three",
+          recentStrengthScore: 84,
+          stocks: [stock({ code: "300003", consecutiveLimitUps: 3, attentionScore: 99 })]
+        })
+      ],
+      defaultThresholds
+    );
+
+    expect(result.selected.some((item) => item.leader.code === "300002")).toBe(true);
+    expect(result.selected.some((item) => item.leader.code === "300003")).toBe(false);
+    expect(result.rejections.some((rejection) => rejection.code === "300003" && rejection.reason.includes("人气龙头过热"))).toBe(true);
+  });
 });

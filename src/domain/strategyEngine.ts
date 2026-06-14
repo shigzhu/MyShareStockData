@@ -147,7 +147,7 @@ function buildCandidatePlan(
       ...quant.reasons
     ],
     risks: ["9:25前仍需竞价成交确认", "题材龙头走弱则取消买入", ...hotMoney.risks, ...heat.risks, ...quant.risks],
-    entryPlan: "9:25后只在竞价明显放量且高开3%-7%附近时分批参与",
+    entryPlan: "9:25后只在竞价明显放量且高开1%-7%附近时分批参与",
     noBuyCondition: "竞价无量、高开过热、板块龙头跳水或个股放量滞涨时不买",
     stopLoss: "单只股票硬止损约-8%，逻辑走弱时提前退出",
     trendExit: "持有期间跟踪5日/10日线和题材龙头状态，趋势破坏则退出"
@@ -172,7 +172,8 @@ function buildObservationCandidate(
   stock: StockMetrics,
   theme: ThemeMetrics,
   themeScore: number,
-  thresholds: StrategyThresholds
+  thresholds: StrategyThresholds,
+  role: CandidatePlan["role"] = "BACKUP"
 ): CandidatePlan {
   const riskReasons = getRiskRejections(stock, thresholds).map((rejection) => rejection.reason);
   const heat = scoreDiscussionHeat(stock);
@@ -188,14 +189,14 @@ function buildObservationCandidate(
 
   return {
     ...candidate,
-    role: "PRIMARY",
-    reasons: unique(["市场合格但严格过滤后无候选，保底保留一只首推观察票", ...candidate.reasons]),
+    role,
+    reasons: unique(["市场合格但严格过滤后无候选，保底保留观察票", ...candidate.reasons]),
     risks: unique([
       "保底观察：风险过滤未完全通过",
       ...failedFilters.map((reason) => `风险过滤未完全通过：${reason}`),
       ...candidate.risks
     ]),
-    entryPlan: "仅作8:30首推观察，9:25必须出现竞价明显放量和价格确认，否则保持空仓",
+    entryPlan: "仅作24:00首推观察，9:25必须出现竞价明显放量和价格确认，否则保持空仓",
     noBuyCondition: "竞价无明显放量、风险项未改善、题材龙头走弱或个股高开过热时不买"
   };
 }
@@ -220,7 +221,8 @@ function buildFallbackObservationCandidates(
         .map((stock) => buildObservationCandidate(stock, theme, score, thresholds))
     )
     .sort((a, b) => b.score - a.score)
-    .slice(0, 1);
+    .slice(0, 3)
+    .map((candidate, index) => ({ ...candidate, role: index === 0 ? "PRIMARY" : "BACKUP" }));
 }
 
 export function generatePreMarketPlan(
@@ -306,9 +308,9 @@ export function generatePreMarketPlan(
       ranked.length === 0
         ? "市场合格，但没有通过风险过滤的候选"
         : ranked[0].risks.some((risk) => risk.includes("风险过滤未完全通过"))
-          ? "市场合格但严格过滤后无候选，生成8:30保底首推观察票，9:25未确认则空仓"
+          ? "市场合格但严格过滤后无候选，生成24:00保底观察票，9:25未确认则空仓"
         : hasPrimary
-          ? "市场赚钱效应合格，生成8:30准备名单"
+          ? "市场赚钱效应合格，生成24:00准备名单"
           : "市场合格但无清晰游资首推，仅保留备选观察",
     candidates: ranked,
     rejections,
@@ -326,6 +328,18 @@ export function generateAuctionPlan(
       ...preMarketResult,
       stage: "AUCTION_0925",
       summary: "市场环境不合格，9:25不生成交易名单"
+    };
+  }
+
+  if (input.dataCompleteness === "MISSING" || !input.auctionByCode || Object.keys(input.auctionByCode).length === 0) {
+    return {
+      stage: "AUCTION_0925",
+      tradeDate: input.tradeDate,
+      marketStatus: "TRADABLE",
+      summary: "9:25竞价数据缺失，不做竞价确认，保持空仓",
+      candidates: [],
+      rejections: [{ reason: "缺少9:25集合竞价数据" }],
+      dataCompleteness: input.dataCompleteness
     };
   }
 

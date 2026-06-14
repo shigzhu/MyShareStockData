@@ -171,7 +171,7 @@ export function buildRuleSuggestions(
     `${candidate.stock.name}次日复盘失败`,
     `总分${candidate.score}/100`,
     result.stage === "AUCTION_0925"
-      ? `竞价${candidate.scoreBreakdown.auction}/40，8:30延续${candidate.scoreBreakdown.premarket}/20，题材${candidate.scoreBreakdown.themeOpen}/15，盘口${candidate.scoreBreakdown.orderBook}/10，接力${candidate.scoreBreakdown.hotMoneyRelay}/10，复核${candidate.scoreBreakdown.riskRecheck}/5`
+      ? `竞价${candidate.scoreBreakdown.auction}/40，24:00延续${candidate.scoreBreakdown.premarket}/20，题材${candidate.scoreBreakdown.themeOpen}/15，盘口${candidate.scoreBreakdown.orderBook}/10，接力${candidate.scoreBreakdown.hotMoneyRelay}/10，复核${candidate.scoreBreakdown.riskRecheck}/5`
       : `交易${candidate.scoreBreakdown.trading}/25，游资${candidate.scoreBreakdown.hotMoney}/20，量化${candidate.scoreBreakdown.quant}/20，热度${candidate.scoreBreakdown.discussion}/15，官方${candidate.scoreBreakdown.official}/10，复盘${candidate.scoreBreakdown.review}/10`
   ];
 

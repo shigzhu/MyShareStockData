@@ -4,6 +4,8 @@ import json
 from typing import Callable
 from urllib.request import Request, urlopen
 
+from adapters.retry import retry_call
+
 
 TUSHARE_URL = "https://api.tushare.pro"
 
@@ -55,7 +57,7 @@ class TushareAdapter:
             "params": params,
             "fields": fields,
         }
-        response = self.http_post_json(payload)
+        response = retry_call(lambda: self.http_post_json(payload), sleep_seconds=0.2)
         if response.get("code") != 0 or not isinstance(response.get("data"), dict):
             raise TushareDataError(str(response.get("msg") or "Tushare接口返回异常"))
         return response["data"]

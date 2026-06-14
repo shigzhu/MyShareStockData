@@ -1,0 +1,3 @@
+请先阅读 C:\Users\76658\Documents\股神\docs\project-state.md
+和 C:\Users\76658\Documents\股神\docs\migration-handoff-2026-06-02.md，
+然后继续维护这个 A 股 APK 项目。

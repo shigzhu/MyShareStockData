@@ -156,7 +156,7 @@ function initialRefreshState(tradeDate: string): IntradayRefreshState {
       stage: "PREMARKET_0830",
       tradeDate,
       status: "PENDING",
-      message: "等待8:30生成准备名单"
+      message: "等待24:00生成准备名单"
     },
     auction: {
       stage: "AUCTION_0925",
@@ -361,7 +361,7 @@ function CandidateCard({
         {stage === "AUCTION_0925" ? (
           <>
             <span>竞价 {candidate.scoreBreakdown.auction}/40</span>
-            <span>8:30 {candidate.scoreBreakdown.premarket}/20</span>
+            <span>24:00 {candidate.scoreBreakdown.premarket}/20</span>
             <span>题材 {candidate.scoreBreakdown.themeOpen}/15</span>
             <span>盘口 {candidate.scoreBreakdown.orderBook}/10</span>
             <span>接力 {candidate.scoreBreakdown.hotMoneyRelay}/10</span>
@@ -554,6 +554,10 @@ function ArchivedPlanSection({
 function HistoryDetails({ initiallyOpen, children }: { initiallyOpen: boolean; children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(initiallyOpen);
 
+  useEffect(() => {
+    setIsOpen(initiallyOpen);
+  }, [initiallyOpen]);
+
   return (
     <details open={isOpen} onToggle={(event) => setIsOpen(event.currentTarget.open)}>
       {children}
@@ -561,7 +565,39 @@ function HistoryDetails({ initiallyOpen, children }: { initiallyOpen: boolean; c
   );
 }
 
-function History({
+interface HistoryWeekGroup {
+  weekLabel: string;
+  plans: DailyPlan[];
+}
+
+interface HistoryMonthGroup {
+  monthLabel: string;
+  weeks: HistoryWeekGroup[];
+}
+
+function groupPlansByMonthAndWeek(plans: DailyPlan[]): HistoryMonthGroup[] {
+  const months = new Map<string, Map<string, DailyPlan[]>>();
+
+  for (const plan of plans) {
+    const monthLabel = getMonthLabel(plan.tradeDate);
+    const weekLabel = getWeekLabel(plan.tradeDate);
+    const weeks = months.get(monthLabel) ?? new Map<string, DailyPlan[]>();
+    const weekPlans = weeks.get(weekLabel) ?? [];
+    weekPlans.push(plan);
+    weeks.set(weekLabel, weekPlans);
+    months.set(monthLabel, weeks);
+  }
+
+  return Array.from(months.entries()).map(([monthLabel, weeks]) => ({
+    monthLabel,
+    weeks: Array.from(weeks.entries()).map(([weekLabel, weekPlans]) => ({
+      weekLabel,
+      plans: weekPlans
+    }))
+  }));
+}
+
+function HistoryDay({
   dailyPlan,
   hiddenKeys,
   onDelete,
@@ -577,48 +613,90 @@ function History({
   defaultOpen: boolean;
 }) {
   return (
+    <HistoryDetails initiallyOpen={defaultOpen}>
+      <summary>
+        <ChevronDown size={16} />
+        {dailyPlan.tradeDate}
+      </summary>
+      <div className="history-day">
+        <span>24:00 首推：{dailyPlan.preMarket?.candidates[0]?.stock.name ?? "无"}</span>
+        <span>9:25 首推：{dailyPlan.auction?.candidates[0]?.stock.name ?? "无"}</span>
+      </div>
+      <ArchivedPlanSection
+        title="24:00 准备名单"
+        result={dailyPlan.preMarket}
+        hiddenKeys={hiddenKeys}
+        tradeDate={dailyPlan.tradeDate}
+        getTradeLog={getTradeLog}
+        onDelete={onDelete}
+        onSaveTrade={onSaveTrade}
+      />
+      <ArchivedPlanSection
+        title="9:25 竞价确认"
+        result={dailyPlan.auction}
+        hiddenKeys={hiddenKeys}
+        tradeDate={dailyPlan.tradeDate}
+        getTradeLog={getTradeLog}
+        onDelete={onDelete}
+        onSaveTrade={onSaveTrade}
+      />
+    </HistoryDetails>
+  );
+}
+
+function History({
+  dailyPlans,
+  hiddenKeys,
+  onDelete,
+  getTradeLog,
+  onSaveTrade,
+  phoneDate,
+  showTodayTradingPlan
+}: {
+  dailyPlans: DailyPlan[];
+  hiddenKeys: Set<string>;
+  onDelete: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan, reason: DeleteReason) => void;
+  getTradeLog: (tradeDate: string, stage: TradeStage, candidate: CandidatePlan) => TradeLogEntry | undefined;
+  onSaveTrade: (entry: TradeLogEntry) => void;
+  phoneDate: string;
+  showTodayTradingPlan: boolean;
+}) {
+  const groups = groupPlansByMonthAndWeek(dailyPlans);
+
+  if (groups.length === 0) {
+    return null;
+  }
+
+  return (
     <section className="history">
       <h2>历史推荐</h2>
-      <HistoryDetails initiallyOpen={defaultOpen}>
+      {groups.map((month) => (
+        <HistoryDetails key={month.monthLabel} initiallyOpen={month.weeks.some((week) => week.plans.some((plan) => plan.tradeDate === phoneDate && showTodayTradingPlan))}>
         <summary>
           <ChevronDown size={16} />
-          {getMonthLabel(dailyPlan.tradeDate)}
+          {month.monthLabel}
         </summary>
-        <HistoryDetails initiallyOpen={defaultOpen}>
+        {month.weeks.map((week) => (
+          <HistoryDetails key={`${month.monthLabel}-${week.weekLabel}`} initiallyOpen={week.plans.some((plan) => plan.tradeDate === phoneDate && showTodayTradingPlan)}>
           <summary>
             <ChevronDown size={16} />
-            {getWeekLabel(dailyPlan.tradeDate)}
+            {week.weekLabel}
           </summary>
-          <HistoryDetails initiallyOpen={defaultOpen}>
-            <summary>
-              <ChevronDown size={16} />
-              {dailyPlan.tradeDate}
-            </summary>
-            <div className="history-day">
-              <span>8:30 首推：{dailyPlan.preMarket?.candidates[0]?.stock.name ?? "无"}</span>
-              <span>9:25 首推：{dailyPlan.auction?.candidates[0]?.stock.name ?? "无"}</span>
-            </div>
-            <ArchivedPlanSection
-              title="8:30 准备名单"
-              result={dailyPlan.preMarket}
+          {week.plans.map((dailyPlan) => (
+            <HistoryDay
+              key={dailyPlan.tradeDate}
+              dailyPlan={dailyPlan}
               hiddenKeys={hiddenKeys}
-              tradeDate={dailyPlan.tradeDate}
-              getTradeLog={getTradeLog}
               onDelete={onDelete}
-              onSaveTrade={onSaveTrade}
-            />
-            <ArchivedPlanSection
-              title="9:25 竞价确认"
-              result={dailyPlan.auction}
-              hiddenKeys={hiddenKeys}
-              tradeDate={dailyPlan.tradeDate}
               getTradeLog={getTradeLog}
-              onDelete={onDelete}
               onSaveTrade={onSaveTrade}
+              defaultOpen={dailyPlan.tradeDate === phoneDate && showTodayTradingPlan}
             />
-          </HistoryDetails>
+          ))}
         </HistoryDetails>
+        ))}
       </HistoryDetails>
+      ))}
     </section>
   );
 }
@@ -648,7 +726,7 @@ function getDataRefreshLabel(status: DataRefreshStatus) {
 }
 
 function stageShortLabel(stage: TradeStage) {
-  return stage === "PREMARKET_0830" ? "8:30" : "9:25";
+  return stage === "PREMARKET_0830" ? "24:00" : "9:25";
 }
 
 function statusClassName(status: DataRefreshStatus) {
@@ -797,6 +875,7 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
     !hiddenKeys.has(recommendationKey(currentPlan?.tradeDate ?? phoneDate, preMarket.stage, candidate))
   );
   const visibleAuctionPrimary = auction?.candidates.find((candidate) =>
+    (candidate.role === "PRIMARY" || candidate.role === "CONFIRMED") &&
     !hiddenKeys.has(recommendationKey(currentPlan?.tradeDate ?? phoneDate, auction.stage, candidate))
   );
   const reviewItems = useMemo<CandidateReview[]>(() => {
@@ -919,14 +998,14 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
 
       {!isTradingDay && <section className="closed-banner">今日未开市，好好休息！</section>}
       {isTradingDay && !hasCurrentDayPlan && refreshState.preMarket.status === "PENDING" && (
-        <section className="pending-banner">今日计划尚未生成，请等待8:30数据更新。</section>
+        <section className="pending-banner">今日计划尚未生成，请等待24:00数据更新。</section>
       )}
 
       {showTodayTradingPlan && (
         <section className="daily-primary">
           <h2>今日首推</h2>
           <PrimaryStrip
-            title="8:30 首推"
+            title="24:00 首推"
             candidate={visiblePrePrimary}
             stage="PREMARKET_0830"
             tradeDate={phoneDate}
@@ -958,22 +1037,20 @@ export default function App({ today, dataProvider = defaultDataProvider }: { tod
         </section>
       )}
 
-      {sortedPlans(plansByDate).map((dailyPlan) => (
-        <History
-          key={`${dailyPlan.tradeDate}-${dailyPlan.tradeDate === phoneDate && showTodayTradingPlan ? "open" : "closed"}`}
-          dailyPlan={dailyPlan}
-          hiddenKeys={hiddenKeys}
-          onDelete={handleDelete}
-          getTradeLog={getTradeLog}
-          onSaveTrade={handleSaveTrade}
-          defaultOpen={dailyPlan.tradeDate === phoneDate && showTodayTradingPlan}
-        />
-      ))}
+      <History
+        dailyPlans={sortedPlans(plansByDate)}
+        hiddenKeys={hiddenKeys}
+        onDelete={handleDelete}
+        getTradeLog={getTradeLog}
+        onSaveTrade={handleSaveTrade}
+        phoneDate={phoneDate}
+        showTodayTradingPlan={showTodayTradingPlan}
+      />
 
       {showTodayTradingPlan && preMarket && (
         <>
           <PlanSection
-            title="8:30 准备名单"
+            title="24:00 准备名单"
             result={preMarket}
             icon={<Clock size={22} />}
             hiddenKeys={hiddenKeys}

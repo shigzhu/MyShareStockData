@@ -128,6 +128,38 @@ class EastMoneyAdapterTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "东方财富公开行情关键字段为空"):
             adapter.fetch_pre_market_input("2026-05-28")
 
+    def test_retries_each_public_quote_endpoint_three_times_before_trying_next_endpoint(self):
+        calls = []
+
+        def client(url):
+            calls.append(url)
+            raise RuntimeError("temporary timeout")
+
+        adapter = EastMoneyAdapter(http_get_json=client)
+
+        with self.assertRaisesRegex(RuntimeError, "temporary timeout"):
+            adapter._request_api(["https://first.example/api", "https://second.example/api"], {"a": "1"})
+
+        self.assertEqual(len(calls), 6)
+        self.assertEqual(calls[:3], ["https://first.example/api?a=1"] * 3)
+        self.assertEqual(calls[3:], ["https://second.example/api?a=1"] * 3)
+
+    def test_uses_public_quote_response_when_retry_succeeds(self):
+        calls = []
+
+        def client(url):
+            calls.append(url)
+            if len(calls) < 3:
+                raise RuntimeError("temporary timeout")
+            return {"rc": 0, "data": {"diff": [{"f12": "300750"}]}}
+
+        adapter = EastMoneyAdapter(http_get_json=client)
+
+        payload = adapter._request_api(["https://first.example/api"], {"a": "1"})
+
+        self.assertEqual(payload["data"]["diff"][0]["f12"], "300750")
+        self.assertEqual(len(calls), 3)
+
     def test_builds_auction_input_only_for_premarket_pool(self):
         def client(url):
             if "api/qt/ulist.np/get" in url:
