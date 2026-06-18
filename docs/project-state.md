@@ -46,8 +46,8 @@
 
 - 短期采用低成本方案：GitHub Actions 定时生成 JSON，GitHub Pages 托管，APK 每天按北京时间读取远程 JSON。
 - 手机安装 APK 后不需要每天手动进入 GitHub 启动；只要 GitHub Actions 定时任务和 Pages 正常，APK 打开时会自动读取当天数据并补偿刷新。
-- 数据任务拆成 6 个北京时间阶段：04:17 `overnight` 写慢变量缓存，06:17 `sentiment` 写热度缓存，08:17 `premarket-scan` 写题材和候选池缓存，08:37 `premarket` 发布准备名单，09:25 `auction` 做竞价确认，09:32 `auction` 补偿确认。
-- 04:17/06:17/08:17 批次写入 `data/cache/YYYY-MM-DD.json`，08:37 再发布 `data/today.json` 和 `data/history/YYYY-MM-DD.json`，避免 8:30 附近从零抓全量数据；09:32 用于缓解 GitHub schedule 或 Pages 发布延迟。
+- 数据任务拆成北京时间阶段：04:17 `overnight` 写慢变量缓存，06:17 `sentiment` 写热度缓存，08:17 `premarket-scan` 写题材和候选池缓存，08:37 `premarket` 发布准备名单，09:25 `auction` 做竞价确认，09:32 `auction` 补偿确认，10:25/11:25/12:25/13:25/14:25 每小时执行 `auction` 补偿刷新。
+- 04:17/06:17/08:17 批次写入 `data/cache/YYYY-MM-DD.json`，08:37 再发布 `data/today.json` 和 `data/history/YYYY-MM-DD.json`，避免 8:30 附近从零抓全量数据；09:32 和 10:25-14:25 用于缓解 GitHub schedule 或 Pages 发布延迟并提高线上 JSON 新鲜度，9:35 后已有竞价结果时会保留原 9:25 判断。
 - GitHub Actions schedule 不是硬实时任务，尤其整点附近可能延迟；工作流已避开整点并增加补偿跑，但真正的手机“准时通知”仍需要后续接入原生推送或 Android 后台调度。
 - 仍需持续完善的数据源适配器包括：AkShare、Tushare、东方财富行情、讨论热度、9:25 集合竞价。
 - 还应优先补充：交易所公开信息/龙虎榜/融资融券、巨潮资讯公告风险、真实 Level-2 或稳定竞价数据、雪球/淘股吧/财联社等舆情源、复盘胜率数据闭环。
