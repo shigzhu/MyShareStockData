@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-06-19",
-  "generatedAt": "2026-06-19T17:17:10+08:00",
+  "generatedAt": "2026-06-19T17:58:22+08:00",
   "source": {
     "mode": "AUCTION_WINDOW_MISSED",
     "description": "当前已过9:35且不存在有效9:25竞价确认，保留24:00准备名单，不用盘中行情补写竞价。",
