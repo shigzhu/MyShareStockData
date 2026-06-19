@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-06-19",
-  "generatedAt": "2026-06-19T13:36:26+08:00",
+  "generatedAt": "2026-06-19T14:31:42+08:00",
   "source": {
-    "mode": "REAL_PARTIAL",
-    "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。",
+    "mode": "AUCTION_WINDOW_MISSED",
+    "description": "当前已过9:35且不存在有效9:25竞价确认，保留24:00准备名单，不用盘中行情补写竞价。",
     "providers": [
       "eastmoney_public_quote"
     ],
@@ -13,8 +13,9 @@
       "9:25竞价字段来自公开行情快照派生，缺失时会标记为关键数据不足",
       "财务量化字段使用公开行情可得字段派生，后续可接入 Tushare 增强"
     ],
+    "auctionFailureReason": "错过9:25有效竞价采集窗口",
     "calendarProvider": "static_2026",
-    "pipelineStage": "premarket",
+    "pipelineStage": "auction",
     "cacheStages": []
   },
   "tradingStatus": {
