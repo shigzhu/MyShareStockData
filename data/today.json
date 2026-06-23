@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-06-23",
-  "generatedAt": "2026-06-23T15:01:26+08:00",
+  "generatedAt": "2026-06-23T16:00:41+08:00",
   "source": {
     "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
     "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
