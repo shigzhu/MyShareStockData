@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-07-09",
-  "generatedAt": "2026-07-09T15:02:47+08:00",
+  "generatedAt": "2026-07-09T16:01:00+08:00",
   "source": {
     "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
     "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
@@ -662,7 +662,7 @@
         "name": "先进封装",
         "recentStrengthScore": 70,
         "moneyMakingScore": 88,
-        "turnoverHeatScore": 85,
+        "turnoverHeatScore": 82,
         "continuationScore": 88,
         "stocks": [
           {
@@ -1280,7 +1280,7 @@
         "name": "科技风格",
         "recentStrengthScore": 70,
         "moneyMakingScore": 88,
-        "turnoverHeatScore": 19,
+        "turnoverHeatScore": 20,
         "continuationScore": 88,
         "stocks": [
           {
