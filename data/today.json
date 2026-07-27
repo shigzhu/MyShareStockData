@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-07-27",
-  "generatedAt": "2026-07-27T16:52:54+08:00",
+  "generatedAt": "2026-07-27T18:13:10+08:00",
   "source": {
     "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
     "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
@@ -44,7 +44,7 @@
         "name": "历史新高",
         "recentStrengthScore": 100,
         "moneyMakingScore": 100,
-        "turnoverHeatScore": 0,
+        "turnoverHeatScore": 100,
         "continuationScore": 100,
         "stocks": [
           {
@@ -130,7 +130,7 @@
         "name": "昨日打二板以上表现",
         "recentStrengthScore": 83,
         "moneyMakingScore": 100,
-        "turnoverHeatScore": 75,
+        "turnoverHeatScore": 94,
         "continuationScore": 100,
         "stocks": [
           {
@@ -596,7 +596,7 @@
         "name": "百日新高",
         "recentStrengthScore": 67,
         "moneyMakingScore": 83,
-        "turnoverHeatScore": 0,
+        "turnoverHeatScore": 52,
         "continuationScore": 83,
         "stocks": [
           {
