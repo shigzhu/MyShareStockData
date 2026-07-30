@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-07-30",
-  "generatedAt": "2026-07-30T12:23:47+08:00",
+  "generatedAt": "2026-07-30T12:38:24+08:00",
   "source": {
-    "mode": "AUCTION_WINDOW_MISSED",
-    "description": "当前已过9:35且不存在有效9:25竞价确认，保留24:00准备名单，不用盘中行情补写竞价。",
+    "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
+    "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
     "providers": [
       "eastmoney_public_quote"
     ],
@@ -13,7 +13,6 @@
       "9:25竞价字段来自公开行情快照派生，缺失时会标记为关键数据不足",
       "财务量化字段使用公开行情可得字段派生，后续可接入 Tushare 增强"
     ],
-    "auctionFailureReason": "错过9:25有效竞价采集窗口",
     "calendarProvider": "static_2026",
     "pipelineStage": "auction",
     "cacheStages": [
@@ -45,7 +44,7 @@
         "name": "昨日打二板以上表现",
         "recentStrengthScore": 71,
         "moneyMakingScore": 89,
-        "turnoverHeatScore": 14,
+        "turnoverHeatScore": 0,
         "continuationScore": 89,
         "stocks": [
           {
@@ -435,7 +434,7 @@
         "name": "历史新高",
         "recentStrengthScore": 64,
         "moneyMakingScore": 80,
-        "turnoverHeatScore": 70,
+        "turnoverHeatScore": 0,
         "continuationScore": 80,
         "stocks": [
           {
@@ -521,7 +520,7 @@
         "name": "昨日连板_含一字",
         "recentStrengthScore": 50,
         "moneyMakingScore": 62,
-        "turnoverHeatScore": 56,
+        "turnoverHeatScore": 3,
         "continuationScore": 62,
         "stocks": [
           {
