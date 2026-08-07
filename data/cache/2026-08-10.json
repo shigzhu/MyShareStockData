@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "tradeDate": "2026-08-10",
+  "generatedAt": "2026-08-07T08:55:01+08:00",
+  "source": {
+    "mode": "SAMPLE_FALLBACK",
+    "description": "真实公开源拉取失败，已写入样本兜底数据；APK 应显示缺关键数据，不应按实盘推荐使用。",
+    "providers": [
+      "fixture"
+    ],
+    "fallbackReason": "东方财富公开行情关键字段为空",
+    "calendarProvider": "static_2026"
+  },
+  "stages": {
+    "overnight": {
+      "generatedAt": "2026-08-07T08:55:01+08:00",
+      "sourceMode": "SAMPLE_FALLBACK",
+      "description": "真实公开源拉取失败，已写入样本兜底数据；APK 应显示缺关键数据，不应按实盘推荐使用。"
+    }
+  },
+  "preMarketInput": {
+    "tradeDate": "2026-08-10",
+    "dataCompleteness": "MISSING",
+    "marketMood": {
+      "advancingCount": 3200,
+      "decliningCount": 1600,
+      "limitUpCount": 62,
+      "limitDownCount": 3,
+      "consecutiveLimitHeight": 5,
+      "failedBoardRatioPct": 20,
+      "yesterdayLimitUpAvgReturnPct": 2.1
+    },
+    "themes": [
+      {
+        "id": "ai",
+        "name": "人工智能",
+        "recentStrengthScore": 88,
+        "moneyMakingScore": 84,
+        "turnoverHeatScore": 91,
+        "continuationScore": 79,
+        "stocks": [
+          {
+            "code": "300750",
+            "name": "宁德时代",
+            "themeId": "ai",
+            "lastClose": 20,
+            "turnoverAmount": 2600000000,
+            "turnoverRatePct": 8.8,
+            "return5dPct": 6.4,
+            "return10dPct": 11.5,
+            "return20dPct": 19.2,
+            "distanceFromMa5Pct": 3.8,
+            "distanceFromMa10Pct": 7.4,
+            "consecutiveLimitUps": 0,
+            "blowOffVolume": false,
+            "weakAcceptanceAfterBlowOff": false,
+            "isSt": false,
+            "isSuspended": false,
+            "listingDays": 900,
+            "severeFinancialRisk": false,
+            "majorNegativeEvent": false,
+            "attentionScore": 95,
+            "discussionHeat": {
+              "iwencaiScore": 58,
+              "eastMoneyGubaScore": 62,
+              "weiboFinanceScore": 55,
+              "rankingDays": 2,
+              "suddenRiseDays": 2,
+              "screenDominating": false
+            },
+            "quant": {
+              "pe": 24,
+              "pb": 4.8,
+              "ps": 3.6,
+              "evToEbitda": 18,
+              "revenueGrowthYoYPct": 18,
+              "revenueGrowthQoQPct": 7,
+              "profitGrowthYoYPct": 22,
+              "epsGrowthPct": 20,
+              "roePct": 16,
+              "roaPct": 7,
+              "grossMarginPct": 32,
+              "netMarginPct": 11,
+              "debtAssetRatioPct": 47,
+              "operatingCashFlowCoverage": 1.25,
+              "return1dPct": 3.2,
+              "relativeStrengthRank": 82,
+              "rsi14": 61,
+              "northboundNetBuyScore": 72,
+              "marginBalanceTrendScore": 66,
+              "institutionHoldingScore": 78,
+              "volatility20dPct": 24,
+              "maxDrawdown60dPct": 12,
+              "marketCapRankScore": 88
+            },
+            "hotMoney": {
+              "themeHotspotScore": 84,
+              "policyCatalystScore": 72,
+              "resonanceScore": 78,
+              "limitBoardScore": 68,
+              "boardContinuityScore": 62,
+              "sealStrengthScore": 64,
+              "turnoverStructureScore": 76,
+              "volumePriceFitScore": 74,
+              "dragonPositionScore": 80,
+              "hasDragonTigerSeat": false,
+              "seatNetBuyScore": 0,
+              "substituteSeatSignalScore": 78,
+              "floatMarketCapScore": 68,
+              "shareholderConcentrationScore": 62,
+              "emotionProfitScore": 70,
+              "limitUpCountInMarketScore": 76,
+              "onePriceLimitUp": false,
+              "shrinkAccelerating": false,
+              "lateRelayRisk": false
+            }
+          },
+          {
+            "code": "002230",
+            "name": "科大讯飞",
+            "themeId": "ai",
+            "lastClose": 20,
+            "turnoverAmount": 2100000000,
+            "turnoverRatePct": 6,
+            "return5dPct": 7,
+            "return10dPct": 13,
+            "return20dPct": 24,
+            "distanceFromMa5Pct": 3.8,
+            "distanceFromMa10Pct": 7.4,
+            "consecutiveLimitUps": 0,
+            "blowOffVolume": false,
+            "weakAcceptanceAfterBlowOff": false,
+            "isSt": false,
+            "isSuspended": false,
+            "listingDays": 900,
+            "severeFinancialRisk": false,
+            "majorNegativeEvent": false,
+            "attentionScore": 90,
+            "discussionHeat": {
+              "iwencaiScore": 76,
+              "eastMoneyGubaScore": 73,
+              "weiboFinanceScore": 70,
+              "rankingDays": 3,
+              "suddenRiseDays": 2,
+              "screenDominating": false
+            },
+            "quant": {
+              "pe": 36,
+              "pb": 5.5,
+              "ps": 3.6,
+              "evToEbitda": 18,
+              "revenueGrowthYoYPct": 14,
+              "revenueGrowthQoQPct": 7,
+              "profitGrowthYoYPct": 18,
+              "epsGrowthPct": 20,
+              "roePct": 16,
+              "roaPct": 7,
+              "grossMarginPct": 41,
+              "netMarginPct": 8,
+              "debtAssetRatioPct": 47,
+              "operatingCashFlowCoverage": 1.05,
+              "return1dPct": 3.2,
+              "relativeStrengthRank": 78,
+              "rsi14": 61,
+              "northboundNetBuyScore": 62,
+              "marginBalanceTrendScore": 66,
+              "institutionHoldingScore": 70,
+              "volatility20dPct": 26,
+              "maxDrawdown60dPct": 15,
+              "marketCapRankScore": 80
+            },
+            "hotMoney": {
+              "themeHotspotScore": 76,
+              "policyCatalystScore": 72,
+              "resonanceScore": 78,
+              "limitBoardScore": 58,
+              "boardContinuityScore": 62,
+              "sealStrengthScore": 64,
+              "turnoverStructureScore": 72,
+              "volumePriceFitScore": 74,
+              "dragonPositionScore": 80,
+              "hasDragonTigerSeat": true,
+              "seatNetBuyScore": 72,
+              "substituteSeatSignalScore": 66,
+              "floatMarketCapScore": 68,
+              "shareholderConcentrationScore": 62,
+              "emotionProfitScore": 69,
+              "limitUpCountInMarketScore": 76,
+              "onePriceLimitUp": false,
+              "shrinkAccelerating": false,
+              "lateRelayRisk": false
+            }
+          }
+        ]
+      }
+    ],
+    "auctionByCode": {
+      "300750": {
+        "code": "300750",
+        "gapPct": 4.6,
+        "auctionTurnoverAmount": 42000000,
+        "recentAuctionTurnoverAvg": 10000000,
+        "yesterdayTurnoverAmount": 2600000000,
+        "nearOnePriceLimitUp": false,
+        "weakToStrongFailed": false
+      },
+      "002230": {
+        "code": "002230",
+        "gapPct": 2.2,
+        "auctionTurnoverAmount": 32000000,
+        "recentAuctionTurnoverAvg": 8000000,
+        "yesterdayTurnoverAmount": 2100000000,
+        "nearOnePriceLimitUp": false,
+        "weakToStrongFailed": false
+      }
+    }
+  }
+}
