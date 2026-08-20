@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-08-20",
-  "generatedAt": "2026-08-20T12:02:56+08:00",
+  "generatedAt": "2026-08-20T12:56:44+08:00",
   "source": {
     "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
     "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
@@ -662,7 +662,7 @@
         "name": "重组蛋白",
         "recentStrengthScore": 82,
         "moneyMakingScore": 100,
-        "turnoverHeatScore": 17,
+        "turnoverHeatScore": 16,
         "continuationScore": 100,
         "stocks": [
           {
@@ -1280,7 +1280,7 @@
         "name": "CRO",
         "recentStrengthScore": 81,
         "moneyMakingScore": 100,
-        "turnoverHeatScore": 34,
+        "turnoverHeatScore": 33,
         "continuationScore": 100,
         "stocks": [
           {
