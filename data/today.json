@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-08-27",
-  "generatedAt": "2026-08-27T19:15:57+08:00",
+  "generatedAt": "2026-08-27T19:57:19+08:00",
   "source": {
-    "mode": "AUCTION_WINDOW_MISSED",
-    "description": "当前已过9:35且不存在有效9:25竞价确认，保留24:00准备名单，不用盘中行情补写竞价。",
+    "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
+    "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
     "providers": [
       "eastmoney_public_quote"
     ],
@@ -13,7 +13,6 @@
       "9:25竞价字段来自公开行情快照派生，缺失时会标记为关键数据不足",
       "财务量化字段使用公开行情可得字段派生，后续可接入 Tushare 增强"
     ],
-    "auctionFailureReason": "错过9:25有效竞价采集窗口",
     "calendarProvider": "static_2026",
     "pipelineStage": "auction",
     "cacheStages": [
@@ -1670,7 +1669,7 @@
             "themeId": "BK1128",
             "lastClose": 236.23,
             "turnoverAmount": 5255206947,
-            "turnoverRatePct": 4.31,
+            "turnoverRatePct": 4.33,
             "return5dPct": 7.29,
             "return10dPct": 10.21,
             "return20dPct": 14.09,
@@ -1694,8 +1693,8 @@
               "screenDominating": false
             },
             "quant": {
-              "pe": 34.05,
-              "pb": 20.84,
+              "pe": 34.5,
+              "pb": 20.93,
               "ps": 4,
               "evToEbitda": 18,
               "revenueGrowthYoYPct": 17.2,
@@ -1714,9 +1713,9 @@
               "northboundNetBuyScore": 50,
               "marginBalanceTrendScore": 40,
               "institutionHoldingScore": 55,
-              "volatility20dPct": 20.84,
-              "maxDrawdown60dPct": 9.38,
-              "marketCapRankScore": 84
+              "volatility20dPct": 20.93,
+              "maxDrawdown60dPct": 9.42,
+              "marketCapRankScore": 83
             },
             "hotMoney": {
               "themeHotspotScore": 97,
@@ -1731,7 +1730,7 @@
               "hasDragonTigerSeat": false,
               "seatNetBuyScore": 0,
               "substituteSeatSignalScore": 57,
-              "floatMarketCapScore": 84,
+              "floatMarketCapScore": 83,
               "shareholderConcentrationScore": 80,
               "emotionProfitScore": 92,
               "limitUpCountInMarketScore": 90,
