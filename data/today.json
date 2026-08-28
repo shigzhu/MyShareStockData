@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-08-29",
-  "generatedAt": "2026-08-29T00:42:50+08:00",
+  "generatedAt": "2026-08-29T01:33:11+08:00",
   "source": {
     "mode": "REAL_PARTIAL",
     "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。",
