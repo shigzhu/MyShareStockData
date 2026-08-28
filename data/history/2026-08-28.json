@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-08-28",
-  "generatedAt": "2026-08-28T01:42:41+08:00",
+  "generatedAt": "2026-08-28T20:05:44+08:00",
   "source": {
     "mode": "REAL_PARTIAL",
     "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。",
@@ -14,7 +14,7 @@
       "财务量化字段使用公开行情可得字段派生，后续可接入 Tushare 增强"
     ],
     "calendarProvider": "static_2026",
-    "pipelineStage": "auction",
+    "pipelineStage": "premarket",
     "cacheStages": [
       "overnight",
       "premarket-scan",
@@ -899,7 +899,7 @@
             "themeId": "BK1152",
             "lastClose": 152.47,
             "turnoverAmount": 4736833109,
-            "turnoverRatePct": 6.55,
+            "turnoverRatePct": 6.53,
             "return5dPct": 7.12,
             "return10dPct": 9.95,
             "return20dPct": 13.42,
@@ -923,8 +923,8 @@
               "screenDominating": false
             },
             "quant": {
-              "pe": 10.66,
-              "pb": 10.87,
+              "pe": 14.62,
+              "pb": 15.86,
               "ps": 4,
               "evToEbitda": 18,
               "revenueGrowthYoYPct": 16.65,
@@ -944,8 +944,8 @@
               "marginBalanceTrendScore": 40,
               "institutionHoldingScore": 55,
               "volatility20dPct": 16,
-              "maxDrawdown60dPct": 5,
-              "marketCapRankScore": 48
+              "maxDrawdown60dPct": 7.14,
+              "marketCapRankScore": 49
             },
             "hotMoney": {
               "themeHotspotScore": 84,
@@ -960,8 +960,8 @@
               "hasDragonTigerSeat": false,
               "seatNetBuyScore": 0,
               "substituteSeatSignalScore": 61,
-              "floatMarketCapScore": 48,
-              "shareholderConcentrationScore": 48,
+              "floatMarketCapScore": 49,
+              "shareholderConcentrationScore": 49,
               "emotionProfitScore": 84,
               "limitUpCountInMarketScore": 80,
               "onePriceLimitUp": false,
@@ -1669,7 +1669,7 @@
             "themeId": "BK1128",
             "lastClose": 236.23,
             "turnoverAmount": 5255206947,
-            "turnoverRatePct": 4.33,
+            "turnoverRatePct": 4.31,
             "return5dPct": 7.29,
             "return10dPct": 10.21,
             "return20dPct": 14.09,
@@ -1693,8 +1693,8 @@
               "screenDominating": false
             },
             "quant": {
-              "pe": 34.5,
-              "pb": 20.93,
+              "pe": 34.05,
+              "pb": 20.84,
               "ps": 4,
               "evToEbitda": 18,
               "revenueGrowthYoYPct": 17.2,
@@ -1713,9 +1713,9 @@
               "northboundNetBuyScore": 50,
               "marginBalanceTrendScore": 40,
               "institutionHoldingScore": 55,
-              "volatility20dPct": 20.93,
-              "maxDrawdown60dPct": 9.42,
-              "marketCapRankScore": 83
+              "volatility20dPct": 20.84,
+              "maxDrawdown60dPct": 9.38,
+              "marketCapRankScore": 84
             },
             "hotMoney": {
               "themeHotspotScore": 97,
@@ -1730,7 +1730,7 @@
               "hasDragonTigerSeat": false,
               "seatNetBuyScore": 0,
               "substituteSeatSignalScore": 57,
-              "floatMarketCapScore": 83,
+              "floatMarketCapScore": 84,
               "shareholderConcentrationScore": 80,
               "emotionProfitScore": 92,
               "limitUpCountInMarketScore": 90,
@@ -1741,180 +1741,7 @@
           }
         ]
       }
-    ],
-    "auctionByCode": {
-      "000017": {
-        "code": "000017",
-        "gapPct": 10.04,
-        "auctionTurnoverAmount": 605589528,
-        "recentAuctionTurnoverAvg": 1513974,
-        "yesterdayTurnoverAmount": 605589528,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "002084": {
-        "code": "002084",
-        "gapPct": 10.02,
-        "auctionTurnoverAmount": 27643695,
-        "recentAuctionTurnoverAvg": 69109,
-        "yesterdayTurnoverAmount": 27643695,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "003040": {
-        "code": "003040",
-        "gapPct": 9.98,
-        "auctionTurnoverAmount": 1759884206,
-        "recentAuctionTurnoverAvg": 4399711,
-        "yesterdayTurnoverAmount": 1759884206,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "002412": {
-        "code": "002412",
-        "gapPct": 7.1,
-        "auctionTurnoverAmount": 2389191350,
-        "recentAuctionTurnoverAvg": 5972978,
-        "yesterdayTurnoverAmount": 2389191350,
-        "nearOnePriceLimitUp": false,
-        "weakToStrongFailed": false
-      },
-      "600508": {
-        "code": "600508",
-        "gapPct": 2.71,
-        "auctionTurnoverAmount": 1088004052,
-        "recentAuctionTurnoverAvg": 2720010,
-        "yesterdayTurnoverAmount": 1088004052,
-        "nearOnePriceLimitUp": false,
-        "weakToStrongFailed": false
-      },
-      "002445": {
-        "code": "002445",
-        "gapPct": 1.94,
-        "auctionTurnoverAmount": 998482556,
-        "recentAuctionTurnoverAvg": 2496206,
-        "yesterdayTurnoverAmount": 998482556,
-        "nearOnePriceLimitUp": false,
-        "weakToStrongFailed": false
-      },
-      "688300": {
-        "code": "688300",
-        "gapPct": 20.0,
-        "auctionTurnoverAmount": 3769790833,
-        "recentAuctionTurnoverAvg": 9424477,
-        "yesterdayTurnoverAmount": 3769790833,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "688627": {
-        "code": "688627",
-        "gapPct": 11.69,
-        "auctionTurnoverAmount": 2481425114,
-        "recentAuctionTurnoverAvg": 6203563,
-        "yesterdayTurnoverAmount": 2481425114,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "688167": {
-        "code": "688167",
-        "gapPct": 11.07,
-        "auctionTurnoverAmount": 3107374483,
-        "recentAuctionTurnoverAvg": 7768436,
-        "yesterdayTurnoverAmount": 3107374483,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "688262": {
-        "code": "688262",
-        "gapPct": 9.27,
-        "auctionTurnoverAmount": 360115330,
-        "recentAuctionTurnoverAvg": 900288,
-        "yesterdayTurnoverAmount": 360115330,
-        "nearOnePriceLimitUp": false,
-        "weakToStrongFailed": false
-      },
-      "300475": {
-        "code": "300475",
-        "gapPct": 8.43,
-        "auctionTurnoverAmount": 4736833109,
-        "recentAuctionTurnoverAvg": 11842083,
-        "yesterdayTurnoverAmount": 4736833109,
-        "nearOnePriceLimitUp": false,
-        "weakToStrongFailed": false
-      },
-      "688535": {
-        "code": "688535",
-        "gapPct": 7.4,
-        "auctionTurnoverAmount": 708847939,
-        "recentAuctionTurnoverAvg": 1772120,
-        "yesterdayTurnoverAmount": 708847939,
-        "nearOnePriceLimitUp": false,
-        "weakToStrongFailed": false
-      },
-      "002436": {
-        "code": "002436",
-        "gapPct": 7.21,
-        "auctionTurnoverAmount": 4186033713,
-        "recentAuctionTurnoverAvg": 10465084,
-        "yesterdayTurnoverAmount": 4186033713,
-        "nearOnePriceLimitUp": false,
-        "weakToStrongFailed": false
-      },
-      "300548": {
-        "code": "300548",
-        "gapPct": 12.0,
-        "auctionTurnoverAmount": 4972395922,
-        "recentAuctionTurnoverAvg": 12430990,
-        "yesterdayTurnoverAmount": 4972395922,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "688813": {
-        "code": "688813",
-        "gapPct": 11.9,
-        "auctionTurnoverAmount": 600802802,
-        "recentAuctionTurnoverAvg": 1502007,
-        "yesterdayTurnoverAmount": 600802802,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "600330": {
-        "code": "600330",
-        "gapPct": 10.0,
-        "auctionTurnoverAmount": 3703383335,
-        "recentAuctionTurnoverAvg": 9258458,
-        "yesterdayTurnoverAmount": 3703383335,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "002396": {
-        "code": "002396",
-        "gapPct": 9.99,
-        "auctionTurnoverAmount": 3237273230,
-        "recentAuctionTurnoverAvg": 8093183,
-        "yesterdayTurnoverAmount": 3237273230,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "600487": {
-        "code": "600487",
-        "gapPct": 9.98,
-        "auctionTurnoverAmount": 19124123705,
-        "recentAuctionTurnoverAvg": 47810309,
-        "yesterdayTurnoverAmount": 19124123705,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "300857": {
-        "code": "300857",
-        "gapPct": 9.72,
-        "auctionTurnoverAmount": 5255206947,
-        "recentAuctionTurnoverAvg": 13138017,
-        "yesterdayTurnoverAmount": 5255206947,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      }
-    }
+    ]
   },
   "auctionInput": {
     "tradeDate": "2026-08-28",
