@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-09-01",
-  "generatedAt": "2026-09-01T18:17:33+08:00",
+  "generatedAt": "2026-09-01T19:50:07+08:00",
   "source": {
     "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
     "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
@@ -662,7 +662,7 @@
         "name": "粮食概念",
         "recentStrengthScore": 69,
         "moneyMakingScore": 86,
-        "turnoverHeatScore": 47,
+        "turnoverHeatScore": 39,
         "continuationScore": 86,
         "stocks": [
           {
