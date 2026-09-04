@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-09-04",
-  "generatedAt": "2026-09-04T17:48:32+08:00",
+  "generatedAt": "2026-09-04T19:31:01+08:00",
   "source": {
     "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
     "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
@@ -1280,7 +1280,7 @@
         "name": "水产概念",
         "recentStrengthScore": 31,
         "moneyMakingScore": 39,
-        "turnoverHeatScore": 29,
+        "turnoverHeatScore": 18,
         "continuationScore": 39,
         "stocks": [
           {
