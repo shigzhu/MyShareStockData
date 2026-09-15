@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-09-15",
-  "generatedAt": "2026-09-15T15:52:44+08:00",
+  "generatedAt": "2026-09-15T16:47:31+08:00",
   "source": {
     "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
     "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
@@ -44,7 +44,7 @@
         "name": "昨日连板_含一字",
         "recentStrengthScore": 34,
         "moneyMakingScore": 42,
-        "turnoverHeatScore": 100,
+        "turnoverHeatScore": 83,
         "continuationScore": 42,
         "stocks": [
           {
@@ -1280,7 +1280,7 @@
         "name": "反转股",
         "recentStrengthScore": 19,
         "moneyMakingScore": 24,
-        "turnoverHeatScore": 81,
+        "turnoverHeatScore": 66,
         "continuationScore": 24,
         "stocks": [
           {
