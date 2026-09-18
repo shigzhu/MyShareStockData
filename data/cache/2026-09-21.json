@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-09-21",
-  "generatedAt": "2026-09-18T06:50:30+08:00",
+  "generatedAt": "2026-09-18T08:21:28+08:00",
   "source": {
     "mode": "REAL_PARTIAL",
     "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。",
@@ -18,6 +18,11 @@
   "stages": {
     "overnight": {
       "generatedAt": "2026-09-18T06:50:30+08:00",
+      "sourceMode": "REAL_PARTIAL",
+      "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。"
+    },
+    "sentiment": {
+      "generatedAt": "2026-09-18T08:21:28+08:00",
       "sourceMode": "REAL_PARTIAL",
       "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。"
     }
@@ -40,7 +45,7 @@
         "name": "昨日打二板以上表现",
         "recentStrengthScore": 67,
         "moneyMakingScore": 84,
-        "turnoverHeatScore": 32,
+        "turnoverHeatScore": 100,
         "continuationScore": 84,
         "stocks": [
           {
