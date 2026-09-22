@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-09-22",
-  "generatedAt": "2026-09-22T15:48:28+08:00",
+  "generatedAt": "2026-09-22T16:40:24+08:00",
   "source": {
     "mode": "REAL_PARTIAL_AUCTION_MISSING",
     "description": "24:00准备名单已保留，但9:25竞价公开源拉取失败；APK 应显示9:25缺关键数据。",
