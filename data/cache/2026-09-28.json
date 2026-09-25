@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-09-28",
-  "generatedAt": "2026-09-25T07:12:24+08:00",
+  "generatedAt": "2026-09-25T08:34:43+08:00",
   "source": {
     "mode": "SAMPLE_FALLBACK",
     "description": "真实公开源拉取失败，已写入样本兜底数据；APK 应显示缺关键数据，不应按实盘推荐使用。",
@@ -18,7 +18,7 @@
       "description": "真实公开源拉取失败，已写入样本兜底数据；APK 应显示缺关键数据，不应按实盘推荐使用。"
     },
     "sentiment": {
-      "generatedAt": "2026-09-24T08:31:44+08:00",
+      "generatedAt": "2026-09-25T08:34:43+08:00",
       "sourceMode": "SAMPLE_FALLBACK",
       "description": "真实公开源拉取失败，已写入样本兜底数据；APK 应显示缺关键数据，不应按实盘推荐使用。"
     },
