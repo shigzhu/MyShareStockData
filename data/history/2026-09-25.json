@@ -1,16 +1,20 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-09-25",
-  "generatedAt": "2026-09-25T14:12:39+08:00",
+  "generatedAt": "2026-09-25T14:32:21+08:00",
   "source": {
     "mode": "AUCTION_WINDOW_MISSED",
     "description": "当前已过9:35且不存在有效9:25竞价确认，保留24:00准备名单，不用盘中行情补写竞价。",
     "providers": [
-      "fixture"
+      "eastmoney_public_quote"
     ],
-    "fallbackReason": "HTTP Error 502: Bad Gateway",
-    "calendarProvider": "static_2026",
+    "limitations": [
+      "跨平台讨论热度暂未接入问财/股吧/微博真实榜单",
+      "9:25竞价字段来自公开行情快照派生，缺失时会标记为关键数据不足",
+      "财务量化字段使用公开行情可得字段派生，后续可接入 Tushare 增强"
+    ],
     "auctionFailureReason": "错过9:25有效竞价采集窗口",
+    "calendarProvider": "static_2026",
     "pipelineStage": "auction",
     "cacheStages": []
   },
