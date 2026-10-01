@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-10-08",
-  "generatedAt": "2026-10-01T09:18:16+08:00",
+  "generatedAt": "2026-10-01T13:50:22+08:00",
   "source": {
     "mode": "REAL_PARTIAL",
     "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。",
@@ -27,7 +27,7 @@
       "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。"
     },
     "premarket-scan": {
-      "generatedAt": "2026-09-30T13:30:37+08:00",
+      "generatedAt": "2026-10-01T13:50:22+08:00",
       "sourceMode": "REAL_PARTIAL",
       "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。"
     }
@@ -668,7 +668,7 @@
         "name": "昨日连板_含一字",
         "recentStrengthScore": 42,
         "moneyMakingScore": 53,
-        "turnoverHeatScore": 72,
+        "turnoverHeatScore": 100,
         "continuationScore": 53,
         "stocks": [
           {
