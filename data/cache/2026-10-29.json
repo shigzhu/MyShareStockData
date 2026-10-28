@@ -1,19 +1,24 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-10-29",
-  "generatedAt": "2026-10-28T07:46:29+08:00",
+  "generatedAt": "2026-10-28T09:24:32+08:00",
   "source": {
     "mode": "SAMPLE_FALLBACK",
     "description": "真实公开源拉取失败，已写入样本兜底数据；APK 应显示缺关键数据，不应按实盘推荐使用。",
     "providers": [
       "fixture"
     ],
-    "fallbackReason": "HTTP Error 502: Bad Gateway",
+    "fallbackReason": "东方财富公开行情关键字段为空",
     "calendarProvider": "static_2026"
   },
   "stages": {
     "overnight": {
       "generatedAt": "2026-10-28T07:46:29+08:00",
+      "sourceMode": "SAMPLE_FALLBACK",
+      "description": "真实公开源拉取失败，已写入样本兜底数据；APK 应显示缺关键数据，不应按实盘推荐使用。"
+    },
+    "sentiment": {
+      "generatedAt": "2026-10-28T09:24:32+08:00",
       "sourceMode": "SAMPLE_FALLBACK",
       "description": "真实公开源拉取失败，已写入样本兜底数据；APK 应显示缺关键数据，不应按实盘推荐使用。"
     }
