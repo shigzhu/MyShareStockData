@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-10-30",
-  "generatedAt": "2026-10-30T19:30:38+08:00",
+  "generatedAt": "2026-10-30T21:14:13+08:00",
   "source": {
-    "mode": "REAL_PARTIAL_AUCTION_MISSING",
-    "description": "24:00准备名单已保留，但9:25竞价公开源拉取失败；APK 应显示9:25缺关键数据。",
+    "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
+    "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
     "providers": [
       "eastmoney_public_quote"
     ],
@@ -13,7 +13,6 @@
       "9:25竞价字段来自公开行情快照派生，缺失时会标记为关键数据不足",
       "财务量化字段使用公开行情可得字段派生，后续可接入 Tushare 增强"
     ],
-    "auctionFailureReason": "HTTP Error 502: Bad Gateway",
     "calendarProvider": "static_2026",
     "pipelineStage": "auction",
     "cacheStages": [
@@ -1204,7 +1203,7 @@
             "themeId": "BK0899",
             "lastClose": 21.95,
             "turnoverAmount": 732637664,
-            "turnoverRatePct": 6.37,
+            "turnoverRatePct": 6.46,
             "return5dPct": 5.29,
             "return10dPct": 7.41,
             "return20dPct": 10.24,
@@ -1218,18 +1217,18 @@
             "listingDays": 900,
             "severeFinancialRisk": false,
             "majorNegativeEvent": false,
-            "attentionScore": 35,
+            "attentionScore": 36,
             "discussionHeat": {
-              "iwencaiScore": 21,
-              "eastMoneyGubaScore": 27,
+              "iwencaiScore": 22,
+              "eastMoneyGubaScore": 28,
               "weiboFinanceScore": 18,
               "rankingDays": 3,
               "suddenRiseDays": 2,
               "screenDominating": false
             },
             "quant": {
-              "pe": -85.41,
-              "pb": 2.53,
+              "pe": -84.34,
+              "pb": 2.5,
               "ps": 4,
               "evToEbitda": 18,
               "revenueGrowthYoYPct": 15.78,
