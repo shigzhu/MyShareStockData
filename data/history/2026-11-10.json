@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-11-10",
-  "generatedAt": "2026-11-10T21:39:36+08:00",
+  "generatedAt": "2026-11-10T23:04:16+08:00",
   "source": {
     "mode": "REAL_PARTIAL_AUCTION_PRESERVED",
     "description": "东方财富公开行情已更新24:00准备池；因当前已过9:35，保留既有9:25竞价确认，避免下午行情覆盖竞价判断。",
@@ -44,7 +44,7 @@
         "name": "历史新高",
         "recentStrengthScore": 67,
         "moneyMakingScore": 84,
-        "turnoverHeatScore": 22,
+        "turnoverHeatScore": 0,
         "continuationScore": 84,
         "stocks": [
           {
