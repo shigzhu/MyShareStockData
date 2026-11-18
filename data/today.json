@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tradeDate": "2026-11-18",
-  "generatedAt": "2026-11-18T00:17:02+08:00",
+  "generatedAt": "2026-11-18T15:52:29+08:00",
   "source": {
     "mode": "REAL_PARTIAL",
     "description": "东方财富公开行情生成的部分真实数据；讨论热度、部分量化和竞价字段为公开行情派生估算。",
@@ -14,7 +14,7 @@
       "财务量化字段使用公开行情可得字段派生，后续可接入 Tushare 增强"
     ],
     "calendarProvider": "static_2026",
-    "pipelineStage": "auction",
+    "pipelineStage": "premarket",
     "cacheStages": [
       "overnight",
       "premarket-scan",
@@ -44,7 +44,7 @@
         "name": "反转股",
         "recentStrengthScore": 41,
         "moneyMakingScore": 51,
-        "turnoverHeatScore": 32,
+        "turnoverHeatScore": 52,
         "continuationScore": 51,
         "stocks": [
           {
@@ -1893,180 +1893,7 @@
           }
         ]
       }
-    ],
-    "auctionByCode": {
-      "301288": {
-        "code": "301288",
-        "gapPct": 20.02,
-        "auctionTurnoverAmount": 227666262,
-        "recentAuctionTurnoverAvg": 569166,
-        "yesterdayTurnoverAmount": 227666262,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "301421": {
-        "code": "301421",
-        "gapPct": 13.42,
-        "auctionTurnoverAmount": 1532782889,
-        "recentAuctionTurnoverAvg": 3831957,
-        "yesterdayTurnoverAmount": 1532782889,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "688502": {
-        "code": "688502",
-        "gapPct": 10.34,
-        "auctionTurnoverAmount": 1248662514,
-        "recentAuctionTurnoverAvg": 3121656,
-        "yesterdayTurnoverAmount": 1248662514,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "002685": {
-        "code": "002685",
-        "gapPct": 10.02,
-        "auctionTurnoverAmount": 227901016,
-        "recentAuctionTurnoverAvg": 569753,
-        "yesterdayTurnoverAmount": 227901016,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "600467": {
-        "code": "600467",
-        "gapPct": 10.0,
-        "auctionTurnoverAmount": 646744771,
-        "recentAuctionTurnoverAvg": 1616862,
-        "yesterdayTurnoverAmount": 646744771,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "600410": {
-        "code": "600410",
-        "gapPct": 10.0,
-        "auctionTurnoverAmount": 1403187332,
-        "recentAuctionTurnoverAvg": 3507968,
-        "yesterdayTurnoverAmount": 1403187332,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "301618": {
-        "code": "301618",
-        "gapPct": 2.38,
-        "auctionTurnoverAmount": 168132566,
-        "recentAuctionTurnoverAvg": 420331,
-        "yesterdayTurnoverAmount": 168132566,
-        "nearOnePriceLimitUp": false,
-        "weakToStrongFailed": false
-      },
-      "301106": {
-        "code": "301106",
-        "gapPct": -1.25,
-        "auctionTurnoverAmount": 135511896,
-        "recentAuctionTurnoverAvg": 338780,
-        "yesterdayTurnoverAmount": 135511896,
-        "nearOnePriceLimitUp": false,
-        "weakToStrongFailed": false
-      },
-      "301209": {
-        "code": "301209",
-        "gapPct": 20.01,
-        "auctionTurnoverAmount": 633270267,
-        "recentAuctionTurnoverAvg": 1583176,
-        "yesterdayTurnoverAmount": 633270267,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "300721": {
-        "code": "300721",
-        "gapPct": 15.51,
-        "auctionTurnoverAmount": 475202186,
-        "recentAuctionTurnoverAvg": 1188005,
-        "yesterdayTurnoverAmount": 475202186,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "002584": {
-        "code": "002584",
-        "gapPct": 10.01,
-        "auctionTurnoverAmount": 303621751,
-        "recentAuctionTurnoverAvg": 759054,
-        "yesterdayTurnoverAmount": 303621751,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "603078": {
-        "code": "603078",
-        "gapPct": 10.0,
-        "auctionTurnoverAmount": 388058844,
-        "recentAuctionTurnoverAvg": 970147,
-        "yesterdayTurnoverAmount": 388058844,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "603931": {
-        "code": "603931",
-        "gapPct": 9.99,
-        "auctionTurnoverAmount": 174230109,
-        "recentAuctionTurnoverAvg": 435575,
-        "yesterdayTurnoverAmount": 174230109,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "603324": {
-        "code": "603324",
-        "gapPct": 9.98,
-        "auctionTurnoverAmount": 48438162,
-        "recentAuctionTurnoverAvg": 121095,
-        "yesterdayTurnoverAmount": 48438162,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "300346": {
-        "code": "300346",
-        "gapPct": 8.22,
-        "auctionTurnoverAmount": 2078265032,
-        "recentAuctionTurnoverAvg": 5195663,
-        "yesterdayTurnoverAmount": 2078265032,
-        "nearOnePriceLimitUp": false,
-        "weakToStrongFailed": false
-      },
-      "300786": {
-        "code": "300786",
-        "gapPct": 19.96,
-        "auctionTurnoverAmount": 268431238,
-        "recentAuctionTurnoverAvg": 671078,
-        "yesterdayTurnoverAmount": 268431238,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "603297": {
-        "code": "603297",
-        "gapPct": 10.0,
-        "auctionTurnoverAmount": 453456546,
-        "recentAuctionTurnoverAvg": 1133641,
-        "yesterdayTurnoverAmount": 453456546,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "600619": {
-        "code": "600619",
-        "gapPct": 9.99,
-        "auctionTurnoverAmount": 639959384,
-        "recentAuctionTurnoverAvg": 1599898,
-        "yesterdayTurnoverAmount": 639959384,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      },
-      "002889": {
-        "code": "002889",
-        "gapPct": 9.98,
-        "auctionTurnoverAmount": 414986838,
-        "recentAuctionTurnoverAvg": 1037467,
-        "yesterdayTurnoverAmount": 414986838,
-        "nearOnePriceLimitUp": true,
-        "weakToStrongFailed": false
-      }
-    }
+    ]
   },
   "auctionInput": {
     "tradeDate": "2026-11-18",
